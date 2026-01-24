@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Art Marketplace – Checkout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="./index.html" class="text-xl font-bold text-indigo-700">
+        Art<span class="text-gray-900">Market</span>
+      </a>
+
+      <nav class="flex gap-4 text-sm">
+        <a href="./index.html" class="text-gray-600 hover:text-indigo-600">Home</a>
+        <a href="./cart.html" class="text-gray-600 hover:text-indigo-600">My Cart</a>
+        <a href="./login.html" class="text-gray-600 hover:text-indigo-600">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <section class="max-w-6xl mx-auto px-4 py-8">
+      <h1 class="text-2xl font-bold mb-2">Checkout</h1>
+      <p class="text-sm text-gray-500 mb-6">
+        Confirm your delivery details and place your order.
+      </p>
+
+      <div id="checkout-message" class="mb-4 text-sm hidden"></div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- LEFT: Address + Delivery -->
+        <div class="md:col-span-2 space-y-6">
+          <!-- Addresses -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <h2 class="text-lg font-semibold mb-3">Delivery address</h2>
+
+            <!-- Existing addresses -->
+            <div id="address-list" class="space-y-3">
+              <!-- JS will inject radio buttons here -->
+            </div>
+
+            <button
+              id="toggle-new-address"
+              type="button"
+              class="mt-3 text-sm text-indigo-600 hover:underline"
+            >
+              + Add new address
+            </button>
+
+<form id="new-address-form" class="mt-4 space-y-3 hidden">
+  <!-- County -->
+  <div>
+    <label class="block text-xs font-medium text-gray-600 mb-1">County</label>
+    <select
+      id="county-select"
+      name="county"
+      required
+      class="w-full border rounded px-3 py-2 text-sm"
+    >
+      <!-- JS will populate options: Nairobi etc -->
+    </select>
+  </div>
+
+  <!-- Town / Area -->
+  <div>
+    <label class="block text-xs font-medium text-gray-600 mb-1">Town / Area</label>
+    <select
+      id="town-select"
+      name="town"
+      required
+      class="w-full border rounded px-3 py-2 text-sm"
+    >
+      <!-- JS will populate based on county -->
+    </select>
+  </div>
+
+  <!-- Street / Estate -->
+  <div>
+    <label class="block text-xs font-medium text-gray-600 mb-1">Street / Estate</label>
+    <select
+      id="street-select"
+      name="street"
+      required
+      class="w-full border rounded px-3 py-2 text-sm"
+    >
+      <!-- JS will populate based on town -->
+    </select>
+  </div>
+
+  <div class="flex justify-end gap-2 pt-2">
+    <button
+      type="button"
+      id="cancel-new-address"
+      class="px-3 py-1.5 text-xs rounded border text-gray-600"
+    >
+      Cancel
+    </button>
+    <button
+      type="submit"
+      class="px-4 py-1.5 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700"
+    >
+      Save address
+    </button>
+  </div>
+</form>
+          </div>
+
+          <!-- Delivery info (shipping) -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <h2 class="text-lg font-semibold mb-3">Delivery</h2>
+            <p class="text-sm text-gray-600">
+              Once you select / add an address, we will calculate delivery cost automatically.
+            </p>
+
+            <div class="mt-3 text-sm space-y-1">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Shipping fee</span>
+                <span id="shipping-fee" class="font-medium">Ksh 0</span>
+              </div>
+              <p id="delivery-note" class="text-xs text-gray-500"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Order summary -->
+        <aside class="md:col-span-1">
+          <div class="bg-white rounded-lg shadow-sm p-4 space-y-4">
+            <h2 class="text-lg font-semibold">Order summary</h2>
+
+            <!-- Items -->
+            <div id="cart-items-list" class="max-h-64 overflow-y-auto border rounded p-2 text-sm space-y-2">
+              <!-- JS will render cart items here -->
+            </div>
+
+            <!-- Totals -->
+            <div class="border-t pt-3 space-y-1 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Subtotal</span>
+                <span id="subtotal" class="font-medium">Ksh 0</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Shipping</span>
+                <span id="shipping-fee-summary" class="font-medium">Ksh 0</span>
+              </div>
+              <div class="flex justify-between text-base font-semibold pt-2 border-t">
+                <span>Total</span>
+                <span id="total">Ksh 0</span>
+              </div>
+            </div>
+
+            <!-- Payment method -->
+            <div class="pt-2">
+              <label class="block text-xs font-medium text-gray-600 mb-1">Payment method</label>
+              <select
+                id="payment-method"
+                class="w-full border rounded px-2 py-1.5 text-sm"
+              >
+                <option value="mpesa">M‑Pesa</option>
+                <option value="cod">Cash on delivery</option>
+              </select>
+            </div>
+
+            <button
+              id="place-order-btn"
+              class="w-full mt-3 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              Place order
+            </button>
+          </div>
+        </aside>
+      </div>
+    </section>
+    <!-- M‑Pesa Phone Modal -->
+<div
+  id="mpesa-modal"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden"
+>
+  <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-5">
+    <h3 class="text-lg font-semibold mb-1">Pay with M‑Pesa</h3>
+    <p class="text-xs text-gray-500 mb-3">
+      Enter the M‑Pesa number where you want to receive the STK push.
+    </p>
+
+    <label
+      for="mpesa-modal-phone"
+      class="block text-xs font-medium text-gray-600 mb-1"
+    >
+      Phone number
+    </label>
+    <input
+      id="mpesa-modal-phone"
+      type="tel"
+      placeholder="e.g. 2547XXXXXXXX"
+      class="w-full border rounded px-3 py-2 text-sm mb-2"
+    />
+
+    <p
+      id="mpesa-modal-error"
+      class="text-xs text-red-600 mb-2 hidden"
+    ></p>
+
+    <div class="flex justify-end gap-2 mt-3">
+      <button
+        id="mpesa-modal-cancel"
+        type="button"
+        class="px-3 py-1.5 text-xs border rounded text-gray-600 hover:bg-gray-50"
+      >
+        Cancel
+      </button>
+      <button
+        id="mpesa-modal-proceed"
+        type="button"
+        class="px-4 py-1.5 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+      >
+        Proceed
+      </button>
+    </div>
+  </div>
+</div>
+  </main>
+
+  <!-- Optional floating cart (for consistency) -->
+  <a href="./cart.html"
+     class="fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-full shadow-lg flex items-center gap-2 hover:bg-green-700 transition">
+    🛒 Cart
+  </a>
+
+  <script type="module" src="./js/checkout.js"></script>
+</body>
+</html>

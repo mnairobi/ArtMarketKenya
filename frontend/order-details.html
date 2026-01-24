@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Art Marketplace – Order Details</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white shadow">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+      <a href="./index.html" class="text-xl font-bold text-indigo-700">
+        Art<span class="text-gray-900">Market</span>
+      </a>
+
+      <nav class="flex gap-4 text-sm">
+        <a href="./index.html" class="text-gray-600 hover:text-indigo-600">Home</a>
+        <a href="./cart.html" class="text-gray-600 hover:text-indigo-600">My Cart</a>
+        <a href="./my-orders.html" class="text-gray-600 hover:text-indigo-600">My Orders</a>
+        <a href="./login.html" class="text-gray-600 hover:text-indigo-600">Logout</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1">
+    <section class="max-w-6xl mx-auto px-4 py-8">
+      <div id="order-header" class="mb-4">
+        <!-- JS will set order # and date here -->
+      </div>
+
+      <div
+        id="order-message"
+        class="mb-4 text-sm hidden"
+      ></div>
+
+      <div id="order-content" class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
+        <!-- LEFT: statuses + delivery -->
+        <div class="md:col-span-1 space-y-4">
+          <!-- Status card -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <h2 class="text-sm font-semibold mb-2 text-gray-800">Order status</h2>
+            <div id="payment-status" class="mb-2 text-xs"></div>
+            <div id="delivery-status" class="text-xs"></div>
+          </div>
+
+          <!-- Delivery info card -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <h2 class="text-sm font-semibold mb-2 text-gray-800">Delivery</h2>
+            <div id="delivery-info" class="text-xs text-gray-600 space-y-1">
+              <!-- JS will render address/status here -->
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: items + totals -->
+        <div class="md:col-span-2 space-y-4">
+          <!-- Items -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <h2 class="text-sm font-semibold mb-3 text-gray-800">Items in this order</h2>
+            <div id="order-items" class="space-y-2 text-sm max-h-80 overflow-y-auto">
+              <!-- JS will render order line items -->
+            </div>
+          </div>
+
+          <!-- Totals -->
+          <div class="bg-white rounded-lg shadow-sm p-4">
+            <h2 class="text-sm font-semibold mb-3 text-gray-800">Payment summary</h2>
+            <div id="order-totals" class="text-sm space-y-1">
+              <!-- JS will render subtotal, shipping, total -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <a
+          href="./my-orders.html"
+          class="inline-flex items-center text-sm text-indigo-600 hover:underline"
+        >
+          ← Back to My Orders
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./js/order-details.js"></script>
+</body>
+</html>
