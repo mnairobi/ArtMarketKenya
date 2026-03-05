@@ -58,7 +58,7 @@
     # return app
 # app/__init__.py
 from flask import Flask
-from services.extensions import db, cors, jwt
+from services.extensions import db, cors, jwt,mail
 from .config import config_by_name
 from routes import register_routes
 from flask_migrate import Migrate   # <-- add this
@@ -73,6 +73,7 @@ def create_app(config_name="development"):
     jwt.init_app(app)
     cors.init_app(app)
     migrate.init_app(app, db)    # <-- connect Migrate with app + db
+    mail.init_app(app)          # <-- initialize Flask-Mail
 
     # Import models so Alembic sees them
     with app.app_context():
@@ -91,6 +92,8 @@ def create_app(config_name="development"):
         from models.artistPayout import ArtistPayout
         from models.address import Address
         from models.stock import Stock
+        from models.passwordReset import PasswordReset
+        
         # ❌ DO NOT call db.create_all() anymore. Migrations will handle this.
 
     register_routes(app)

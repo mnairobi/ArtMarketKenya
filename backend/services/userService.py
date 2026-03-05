@@ -31,7 +31,8 @@ class UserService:
         db.session.commit()
 
         # --- JWT token ---
-        access_token = create_access_token(identity=new_user.id)
+        access_token = create_access_token(identity=str(new_user.id))
+        
 
         return {
             "message": "Account created successfully",
@@ -47,7 +48,7 @@ class UserService:
         if not user or not bcrypt.checkpw(password.encode("utf-8"), user.password.encode("utf-8")):
             return {"message": "Invalid email or password"}, 401
 
-        access_token = create_access_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
 
         return {
             "message": "Login successful",

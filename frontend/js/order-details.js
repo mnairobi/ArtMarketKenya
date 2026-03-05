@@ -334,3 +334,215 @@ function hideMessage() {
   els.message.classList.add("hidden");
   els.message.textContent = "";
 }
+// Add this function to order-details.js
+
+function renderDeliveryInfo(delivery) {
+  const container = document.getElementById('delivery-info');
+  if (!container) return;
+
+  if (!delivery) {
+    container.innerHTML = `
+      <div class="text-gray-500 text-sm">
+        <p>Delivery information not available yet.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Status badge colors
+  const statusColors = {
+    'pending': 'bg-yellow-100 text-yellow-800',
+    'processing': 'bg-blue-100 text-blue-800',
+    'shipping': 'bg-indigo-100 text-indigo-800',
+    'delivered': 'bg-green-100 text-green-800',
+    'cancelled': 'bg-red-100 text-red-800'
+  };
+
+  // Status icons
+  const statusIcons = {
+    'pending': '⏳',
+    'processing': '📦',
+    'shipping': '🚚',
+    'delivered': '✅',
+    'cancelled': '❌'
+  };
+
+  const statusColor = statusColors[delivery.status] || 'bg-gray-100 text-gray-800';
+  const statusIcon = statusIcons[delivery.status] || '📋';
+
+  let html = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <!-- Delivery Status -->
+      <div>
+        <label class="text-sm font-semibold text-gray-600">Status</label>
+        <div class="mt-1">
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${statusColor}">
+            <span>${statusIcon}</span>
+            <span>${delivery.status.charAt(0).toUpperCase() + delivery.status.slice(1)}</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Delivery Address -->
+      ${delivery.address ? `
+        <div>
+          <label class="text-sm font-semibold text-gray-600">Delivery Address</label>
+          <p class="text-sm text-gray-800 mt-1">
+            ${delivery.address.street || ''}<br>
+            ${delivery.address.town || ''}, ${delivery.address.county || ''}<br>
+            ${delivery.address.postal_code || ''}
+          </p>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Tracking Information (if available) -->
+    ${delivery.tracking_number ? `
+      <div class="mt-4 p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="text-sm font-semibold text-indigo-800">Tracking Number</label>
+            <p class="text-sm text-indigo-900 font-mono mt-1">${delivery.tracking_number}</p>
+          </div>
+          ${delivery.carrier ? `
+            <div>
+              <label class="text-sm font-semibold text-indigo-800">Carrier</label>
+              <p class="text-sm text-indigo-900 mt-1">${delivery.carrier}</p>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    ` : ''}
+
+    <!-- Estimated Delivery Date -->
+    ${delivery.estimated_delivery ? `
+      <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+        <label class="text-sm font-semibold text-blue-800">Estimated Delivery</label>
+        <p class="text-sm text-blue-900 mt-1">
+          ${new Date(delivery.estimated_delivery).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </p>
+      </div>
+    ` : ''}
+
+    <!-- Actual Delivery Date (if delivered) -->
+    ${delivery.actual_delivery ? `
+      <div class="mt-4 p-3 bg-green-50 rounded-lg">
+        <label class="text-sm font-semibold text-green-800">Delivered On</label>
+        <p class="text-sm text-green-900 mt-1">
+          ${new Date(delivery.actual_delivery).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })}
+        </p>
+      </div>
+    ` : ''}
+
+    <!-- Delivery Notes -->
+    ${delivery.notes ? `
+      <div class="mt-4 p-3 bg-gray-50 rounded-lg">
+        <label class="text-sm font-semibold text-gray-700">Delivery Notes</label>
+        <p class="text-sm text-gray-800 mt-1">${delivery.notes}</p>
+      </div>
+    ` : ''}
+
+    <!-- Delivery Timeline -->
+    <div class="mt-6">
+      <h3 class="text-sm font-semibold text-gray-700 mb-3">Delivery Timeline</h3>
+      <div class="space-y-3">
+        ${renderDeliveryTimeline(delivery)}
+      </div>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}
+
+function renderDeliveryTimeline(delivery) {
+  const steps = [
+    { status: 'pending', label: 'Order Confirmed', icon: '✓', active: true },
+    { status: 'processing', label: 'Processing', icon: '📦', active: ['processing', 'shipping', 'delivered'].includes(delivery.status) },
+    { status: 'shipping', label: 'Shipped', icon: '🚚', active: ['shipping', 'delivered'].includes(delivery.status) },
+    { status: 'delivered', label: 'Delivered', icon: '✅', active: delivery.status === 'delivered' }
+  ];
+
+  return steps.map((step, index) => {
+    const isActive = step.active;
+    const isCurrent = delivery.status === step.status;
+
+    return `
+      <div class="flex items-center gap-3">
+        <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+          isActive ? 'bg-indigo-600 text-white' : 'bg-gray-200 text-gray-500'
+        }">
+          ${step.icon}
+        </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium ${isActive ? 'text-gray-900' : 'text-gray-500'}">
+            ${step.label}
+            ${isCurrent ? '<span class="ml-2 text-xs text-indigo-600">(Current)</span>' : ''}
+          </p>
+        </div>
+        ${index < steps.length - 1 ? `
+          <div class="h-px flex-1 ${isActive ? 'bg-indigo-300' : 'bg-gray-200'}"></div>
+        ` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+// Update your loadOrderDetails function to fetch and display delivery
+async function loadOrderDetails() {
+  const orderId = getOrderIdFromUrl();
+  if (!orderId) {
+    showMessage("Order ID not found", true);
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("auth_token");
+    
+    // Fetch order
+    const orderResponse = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    const order = await orderResponse.json();
+
+    // Fetch order details
+    const detailsResponse = await fetch(`${API_BASE_URL}/orders/${orderId}/details`, {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    const details = await detailsResponse.json();
+
+    // Fetch delivery info
+    let delivery = null;
+    try {
+      const deliveryResponse = await fetch(`${API_BASE_URL}/deliveries/${orderId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (deliveryResponse.ok) {
+        delivery = await deliveryResponse.json();
+      }
+    } catch (err) {
+      console.log("No delivery info yet");
+    }
+
+    // Render everything
+    renderOrderHeader(order);
+    renderOrderItems(details);
+    renderPaymentSummary(order);
+    renderDeliveryInfo(delivery);  // Add this line
+
+  } catch (err) {
+    console.error("Failed to load order:", err);
+    showMessage("Failed to load order details", true);
+  }
+}

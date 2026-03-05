@@ -142,7 +142,47 @@
         </div>
       </section>
 
-      <!-- Then: My Paintings section -->
+      <!-- Earnings Section -->
+      <section class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-md font-semibold text-gray-800">My Earnings</h3>
+            <p class="text-xs text-gray-500">Track your sales and payouts</p>
+          </div>
+          <button onclick="window.refreshEarnings()" class="text-xs text-indigo-600 hover:text-indigo-800">
+            Refresh
+          </button>
+        </div>
+
+        <div id="earnings-content">
+          <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="ml-2 text-sm text-gray-600">Loading earnings...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sales Analytics Section -->
+      <section class="bg-white rounded-2xl shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-md font-semibold text-gray-800">Sales Analytics</h3>
+            <p class="text-xs text-gray-500">Track your sales performance</p>
+          </div>
+          <button onclick="window.refreshSales()" class="text-xs text-indigo-600 hover:text-indigo-800">
+            Refresh
+          </button>
+        </div>
+
+        <div id="sales-analytics-content">
+          <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="ml-2 text-sm text-gray-600">Loading sales data...</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- My Paintings section -->
       <section class="bg-white rounded-2xl shadow p-6">
         <div class="flex items-center justify-between mb-4">
           <div>
@@ -203,11 +243,7 @@
                   class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
                 >
                   <option value="">Select category (optional)</option>
-                  <!-- JS will inject categories from DB -->
                 </select>
-                <p class="mt-1 text-xs text-gray-500">
-                  Choose the category that best fits this painting.
-                </p>
               </div>
 
               <div>
@@ -237,36 +273,36 @@
               ></textarea>
             </div>
             
-            <!-- Add after np-description -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-  <div>
-    <label for="np-materials" class="block text-sm text-gray-700 mb-1">
-      Materials Used
-    </label>
-    <input
-      type="text"
-      id="np-materials"
-      name="materials"
-      placeholder="e.g., Acrylic on Canvas, Recycled Metal"
-      class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-      required
-    />
-  </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label for="np-materials" class="block text-sm text-gray-700 mb-1">
+                  Materials Used
+                </label>
+                <input
+                  type="text"
+                  id="np-materials"
+                  name="materials"
+                  placeholder="e.g., Acrylic on Canvas"
+                  class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  required
+                />
+              </div>
 
-  <div>
-    <label for="np-location" class="block text-sm text-gray-700 mb-1">
-      Location Created
-    </label>
-    <input
-      type="text"
-      id="np-location"
-      name="location"
-      placeholder="e.g., Nairobi, Kenya"
-      class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-      value="Kenya"
-    />
-  </div>
-</div>
+              <div>
+                <label for="np-location" class="block text-sm text-gray-700 mb-1">
+                  Location Created
+                </label>
+                <input
+                  type="text"
+                  id="np-location"
+                  name="location"
+                  placeholder="e.g., Nairobi, Kenya"
+                  class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  value="Kenya"
+                />
+              </div>
+            </div>
+            
             <button
               type="submit"
               class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"

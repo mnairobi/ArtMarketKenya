@@ -1,140 +1,142 @@
-// js/auth.js
-import { loginUser, registerUser } from "./api.js";
-
-const BUYER_HOME_URL = "./index.html";
-const ARTIST_DASHBOARD_URL = "./artist-dashboard.html"; // create later
-const ADMIN_DASHBOARD_URL = "./admin-dashboard.html";   // optional
+import { registerUser } from "./api.js";
 
 document.addEventListener("DOMContentLoaded", () => {
-  const loginForm = document.getElementById("loginForm");
-  const registerForm = document.getElementById("registerForm");
-
-  if (loginForm) {
-    initLoginForm(loginForm);
-  }
-
-  if (registerForm) {
-    initRegisterForm(registerForm);
-  }
-});
-
-function initLoginForm(form) {
-  const messageEl = document.getElementById("login-message");
-
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    clearMessage(messageEl);
-
-    const email = form.email.value.trim();
-    const password = form.password.value.trim();
-
-    if (!email || !password) {
-      setMessage(messageEl, "Email and password are required.", true);
-      return;
-    }
-
-    try {
-      // Call backend
-      const data = await loginUser({ email, password });
-
-      // Expecting: { access_token, user: { ... } }
-      if (!data.access_token || !data.user) {
-        setMessage(messageEl, "Invalid login response from server.", true);
-        return;
-      }
-
-      // Store auth info for later use
-      saveAuth(data);
-
-      // Redirect based on role
-      const role = data.user.role || "buyer";
-      if (role === "artist") {
-        window.location.href = ARTIST_DASHBOARD_URL;
-      } else if (role === "admin") {
-        window.location.href = ADMIN_DASHBOARD_URL;
-      } else {
-        window.location.href = BUYER_HOME_URL;
-      }
-    } catch (err) {
-      console.error(err);
-      const msg =
-        (err.data && (err.data.message || err.data.error)) ||
-        err.message ||
-        "Login failed.";
-      setMessage(messageEl, msg, true);
-    }
-  });
-}
-
-function initRegisterForm(form) {
+  const form = document.getElementById("registerForm");
   const messageEl = document.getElementById("register-message");
-
+  
+  if (!form) return; // Exit if not on registration page
+  
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    clearMessage(messageEl);
-
+    clearMsg(messageEl);
+    
+    // Get form values
     const username = form.username.value.trim();
     const email = form.email.value.trim();
     const password = form.password.value.trim();
-    const role = form.role.value || "buyer";
-
+    const role = form.role.value;
+    
+    // Validation
     if (!username || !email || !password) {
-      setMessage(messageEl, "All fields are required.", true);
+      showMsg(messageEl, "All fields are required.", true);
       return;
     }
-
+    
+    if (password.length < 6) {
+      showMsg(messageEl, "Password must be at least 6 characters.", true);
+      return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      showMsg(messageEl, "Please enter a valid email address.", true);
+      return;
+    }
+    
+    // Disable submit button
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Creating account...";
+    
     try {
-      // Call backend
-      const data = await registerUser({ username, email, password, role });
-
-      // Your register endpoint returns whatever UserService.create_user returns.
-      // Assume success if we reach here (apiRequest throws on non-2xx).
-      setMessage(
-        messageEl,
-        "Registration successful. Redirecting to login...",
-        false
-      );
-
-      // Small delay then redirect to login
+      // Register the user
+      const data = await registerUser({
+        username,
+        email,
+        password,
+        role
+      });
+      
+      showMsg(messageEl, "Registration successful! Redirecting to login...", false);
+      
+      // Redirect based on role after 2 seconds
       setTimeout(() => {
-        window.location.href = "./login.html";
-      }, 1200);
+        switch(role) {
+          case 'artist':
+            window.location.href = "./artist-login.html";
+            break;
+          case 'admin':
+            window.location.href = "./admin-login.html";
+            break;
+          default: // buyer
+            window.location.href = "./login.html";
+        }
+      }, 2000);
+      
     } catch (err) {
-      console.error(err);
-      const msg =
-        (err.data && (err.data.message || err.data.error)) ||
-        err.message ||
-        "Registration failed.";
-      setMessage(messageEl, msg, true);
+      console.error("Registration error:", err);
+      
+      // Handle specific error messages
+      if (err.status === 409) {
+        showMsg(messageEl, "Email already exists. Please use a different email.", true);
+      } else if (err.data && err.data.message) {
+        showMsg(messageEl, err.data.message, true);
+      } else if (err.data && err.data.error) {
+        showMsg(messageEl, err.data.error, true);
+      } else {
+        showMsg(messageEl, "Registration failed. Please try again.", true);
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Register";
     }
   });
-}
+  
+  // Add password strength indicator
+  const passwordInput = form.password;
+  if (passwordInput) {
+    passwordInput.addEventListener("input", (e) => {
+      const strength = checkPasswordStrength(e.target.value);
+      updatePasswordStrengthIndicator(strength);
+    });
+  }
+});
 
-/* ===== Helpers ===== */
-
-function setMessage(el, text, isError = false) {
+function showMsg(el, text, isError) {
   if (!el) return;
   el.textContent = text;
-  el.classList.remove("text-red-600", "text-green-600");
-  el.classList.add(isError ? "text-red-600" : "text-green-600");
+  el.className = `text-center mt-4 text-sm ${isError ? "text-red-600" : "text-green-600"}`;
 }
 
-function clearMessage(el) {
-  if (!el) return;
-  el.textContent = "";
-}
-
-function saveAuth(data) {
-  try {
-    // Example structure: { access_token, user }
-    localStorage.setItem("auth_token", data.access_token);
-    localStorage.setItem("auth_user", JSON.stringify(data.user));
-  } catch (e) {
-    console.warn("Could not save auth to localStorage", e);
+function clearMsg(el) {
+  if (el) {
+    el.textContent = "";
   }
 }
 
-/* You can later add helpers like:
-export function getCurrentUser() { ... }
-export function getAuthToken() { ... }
-*/
+function checkPasswordStrength(password) {
+  let strength = 0;
+  if (password.length >= 8) strength++;
+  if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
+  if (password.match(/[0-9]/)) strength++;
+  if (password.match(/[^a-zA-Z0-9]/)) strength++;
+  return strength;
+}
+
+function updatePasswordStrengthIndicator(strength) {
+  const indicator = document.getElementById("password-strength");
+  if (!indicator) {
+    // Create indicator if it doesn't exist
+    const passwordField = document.getElementById("password");
+    if (passwordField && passwordField.parentElement) {
+      const div = document.createElement("div");
+      div.id = "password-strength";
+      div.className = "text-xs mt-1";
+      passwordField.parentElement.appendChild(div);
+    }
+  }
+  
+  const strengthIndicator = document.getElementById("password-strength");
+  if (!strengthIndicator) return;
+  
+  const strengthLevels = ["Weak", "Fair", "Good", "Strong"];
+  const strengthColors = ["text-red-500", "text-orange-500", "text-yellow-500", "text-green-500"];
+  
+  if (strength > 0) {
+    strengthIndicator.textContent = `Password strength: ${strengthLevels[strength - 1]}`;
+    strengthIndicator.className = `text-xs mt-1 ${strengthColors[strength - 1]}`;
+  } else {
+    strengthIndicator.textContent = "";
+  }
+}

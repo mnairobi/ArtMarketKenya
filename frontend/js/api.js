@@ -1,149 +1,155 @@
 // js/api.js
 
-// Adjust if backend uses another host/port
-export const API_BASE_URL = "http://127.0.0.1:5000";
+export const API_BASE_URL = "http://localhost:5000";
 
-/**
- * Generic API request helper.
- * - Prefixes with API_BASE_URL
- * - Sends/reads JSON
- * - Throws on non-2xx with error.data
- */
-export async function apiRequest(path, options = {}) {
-  const url = API_BASE_URL + path;
-  const {
-    method = "GET",
-    body = null,
-    token = null,
-    headers = {},
-  } = options;
+// ──────────────────────────────────────────────
+// CORE REQUEST HELPER
+// Handles both JSON objects and FormData bodies
+// ──────────────────────────────────────────────
+async function apiRequest(url, options = {}) {
+  const token = options.token || localStorage.getItem("auth_token");
+  const body = options.body;
 
-  const finalHeaders = { ...headers };
+  // If body is FormData, do NOT set Content-Type (browser sets boundary)
+  // If body is plain object, JSON.stringify it
+  const isFormData = body instanceof FormData;
 
-  if (body && !(body instanceof FormData)) {
-    finalHeaders["Content-Type"] = "application/json";
+  const headers = {
+    ...(token && { Authorization: `Bearer ${token}` }),
+    ...(!isFormData && { "Content-Type": "application/json" }),
+    ...options.headers,
+  };
+
+  const fetchOptions = {
+    method: options.method || "GET",
+    headers,
+  };
+
+  if (body) {
+    fetchOptions.body = isFormData ? body : JSON.stringify(body);
   }
 
-  if (token) {
-    finalHeaders["Authorization"] = `Bearer ${token}`;
-  }
-
-  const response = await fetch(url, {
-    method,
-    headers: finalHeaders,
-    body: body && !(body instanceof FormData) ? JSON.stringify(body) : body,
-    credentials: "include", // OK with your CORS config
-  });
-
-  const contentType = response.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-  const data = isJson ? await response.json() : await response.text();
+  const response = await fetch(`${API_BASE_URL}${url}`, fetchOptions);
+  const data = await response.json();
 
   if (!response.ok) {
-    const err = new Error(
-      (data && (data.message || data.error)) || "Request failed"
-    );
-    err.status = response.status;
-    err.data = data;
-    throw err;
+    const error = new Error(data.message || data.error || "Request failed");
+    error.data = data;
+    error.status = response.status;
+    throw error;
   }
 
   return data;
 }
 
-/* ========= AUTH ========= */
+// ──────────────────────────────────────────────
+// AUTH — each role hits its own endpoint
+// ──────────────────────────────────────────────
+export function loginBuyer({ email, password }) {
+  return apiRequest("/auth/login/buyer", {
+    method: "POST",
+    body: { email, password },
+  });
+}
 
-export function registerUser({ username, email, password, role = "buyer" }) {
+export function loginArtist({ email, password }) {
+  return apiRequest("/auth/login/artist", {
+    method: "POST",
+    body: { email, password },
+  });
+}
+
+export function loginAdmin({ email, password }) {
+  return apiRequest("/auth/login/admin", {
+    method: "POST",
+    body: { email, password },
+  });
+}
+
+export function registerUser({ username, email, password, role }) {
   return apiRequest("/users/register", {
     method: "POST",
     body: { username, email, password, role },
   });
 }
 
-export function loginUser({ email, password }) {
-  return apiRequest("/users/login", {
-    method: "POST",
-    body: { email, password },
-  });
-}
-
-/* ========= DOMAIN: PAINTINGS & CATEGORIES ========= */
-
+// ──────────────────────────────────────────────
+// PAINTINGS
+// ──────────────────────────────────────────────
 export function getAllPaintings() {
-  // Matches: api.add_resource(PaintingListResource, '/paintings/all')
   return apiRequest("/paintings/all");
 }
 
-export function getAllCategories() {
-  // Matches: api.add_resource(CategoryListResource, '/categories')
-  return apiRequest("/categories");
+export function getPainting(paintingId) {
+  return apiRequest(`/paintings/${paintingId}`);
 }
-
-/* ========= ARTIST PROFILES ========= */
-
-export function getArtists() {
-  // /artists -> { artists: [...] }
-  return apiRequest("/artists");
-}
-
-export function createArtistProfile(formData) {
-  // formData must include: user_id, bio, [social_links], [profile_picture]
-  return apiRequest("/artists", {
-    method: "POST",
-    body: formData, // FormData
-  });
-}
-
-export function updateArtistProfile(artistId, formData) {
-  // formData must include: user_id, and any fields to update
-  return apiRequest(`/artists/${artistId}`, {
-    method: "PUT",
-    body: formData,
-  });
-}
-
-/* ========= ARTIST PAINTING CREATION ========= */
 
 export function createPainting(formData) {
-  // /paintings POST with multipart/form-data
-  // required: artist_id, title, price, image (file) or image_url
   return apiRequest("/paintings", {
     method: "POST",
     body: formData,
   });
 }
 
-// Update an existing painting
 export function updatePainting(paintingId, formData) {
   return apiRequest(`/paintings/${paintingId}`, {
     method: "PUT",
-    body: formData, // FormData, may or may not contain image
+    body: formData,
   });
 }
 
-// Delete a painting
 export function deletePainting(paintingId) {
   return apiRequest(`/paintings/${paintingId}`, {
     method: "DELETE",
   });
 }
 
-/* ========= CART ========= */
+// ──────────────────────────────────────────────
+// CATEGORIES
+// ──────────────────────────────────────────────
+export function getAllCategories() {
+  return apiRequest("/categories");
+}
 
-/**
- * Get cart for a user.
- * GET /carts/<user_id>
- */
-export function getCart(userId, token) {
-  return apiRequest(`/carts/${userId}`, {
-    token,
+// ──────────────────────────────────────────────
+// ARTIST PROFILES
+// ──────────────────────────────────────────────
+export function getArtists() {
+  return apiRequest("/artists");
+}
+
+export function getArtist(artistId) {
+  return apiRequest(`/artists/${artistId}`);
+}
+
+export function createArtistProfile(formData) {
+  return apiRequest("/artists", {
+    method: "POST",
+    body: formData,
   });
 }
 
-/**
- * Add item to cart (or increase quantity).
- * POST /carts/<user_id>  { painting_id, quantity }
- */
+export function updateArtistProfile(artistId, formData) {
+  return apiRequest(`/artists/${artistId}`, {
+    method: "PUT",
+    body: formData,
+  });
+}
+
+export function deleteArtistProfile(artistId, userId) {
+  return apiRequest(`/artists/${artistId}`, {
+    method: "DELETE",
+    body: { user_id: userId },
+  });
+}
+
+// ──────────────────────────────────────────────
+// CART
+// ──────────────────────────────────────────────
+export function getCart(userId, token) {
+  return apiRequest(`/carts/${userId}`, { token });
+}
+
 export function addCartItem(userId, paintingId, quantity = 1, token) {
   return apiRequest(`/carts/${userId}`, {
     method: "POST",
@@ -152,10 +158,6 @@ export function addCartItem(userId, paintingId, quantity = 1, token) {
   });
 }
 
-/**
- * Update a specific cart item’s quantity.
- * PUT /cart-items/<item_id>  { quantity }
- */
 export function updateCartItem(itemId, quantity, token) {
   return apiRequest(`/cart-items/${itemId}`, {
     method: "PUT",
@@ -164,10 +166,6 @@ export function updateCartItem(itemId, quantity, token) {
   });
 }
 
-/**
- * Remove a specific cart item.
- * DELETE /cart-items/<item_id>
- */
 export function removeCartItem(itemId, token) {
   return apiRequest(`/cart-items/${itemId}`, {
     method: "DELETE",
@@ -175,10 +173,6 @@ export function removeCartItem(itemId, token) {
   });
 }
 
-/**
- * Clear the whole cart.
- * POST /carts/<user_id>/clear
- */
 export function clearCart(userId, token) {
   return apiRequest(`/carts/${userId}/clear`, {
     method: "POST",
@@ -186,22 +180,13 @@ export function clearCart(userId, token) {
   });
 }
 
-/* ========= WISHLIST ========= */
-
-/**
- * Get wishlist for a user.
- * GET /wishlists/<user_id>
- */
+// ──────────────────────────────────────────────
+// WISHLIST
+// ──────────────────────────────────────────────
 export function getWishlist(userId, token) {
-  return apiRequest(`/wishlists/${userId}`, {
-    token,
-  });
+  return apiRequest(`/wishlists/${userId}`, { token });
 }
 
-/**
- * Add painting to wishlist.
- * POST /wishlists/<user_id>  { painting_id }
- */
 export function addWishlistItem(userId, paintingId, token) {
   return apiRequest(`/wishlists/${userId}`, {
     method: "POST",
@@ -210,22 +195,14 @@ export function addWishlistItem(userId, paintingId, token) {
   });
 }
 
-/**
- * Remove painting from wishlist.
- * DELETE /wishlists/<user_id>  { painting_id }
- */
 export function removeWishlistItem(userId, paintingId, token) {
   return apiRequest(`/wishlists/${userId}`, {
     method: "DELETE",
     token,
-    body: { painting_id },
+    body: { painting_id: paintingId },
   });
 }
 
-/**
- * Clear wishlist.
- * POST /wishlists/<user_id>/clear
- */
 export function clearWishlist(userId, token) {
   return apiRequest(`/wishlists/${userId}/clear`, {
     method: "POST",
@@ -233,23 +210,13 @@ export function clearWishlist(userId, token) {
   });
 }
 
-/* ========= ADDRESSES ========= */
-
-/**
- * Get all addresses for a user
- * GET /addresses/user/<user_id>
- */
+// ──────────────────────────────────────────────
+// ADDRESSES
+// ──────────────────────────────────────────────
 export function getUserAddresses(userId, token) {
-  return apiRequest(`/addresses/user/${userId}`, {
-    token,
-  });
+  return apiRequest(`/addresses/user/${userId}`, { token });
 }
 
-/**
- * Create a new address for a user
- * POST /addresses/user/<user_id>
- * Body: { county, town, street }
- */
 export function createAddress(data, token) {
   const { user_id, county, town, street } = data;
 
@@ -264,17 +231,243 @@ export function createAddress(data, token) {
   });
 }
 
-/* ========= DELIVERY / SHIPPING ========= */
+// ──────────────────────────────────────────────
+// PAYMENTS (M-Pesa)
+// ──────────────────────────────────────────────
+export function initiateMpesaPayment({ order_id, phone }, token) {
+  return apiRequest("/payments", {
+    method: "POST",
+    token,
+    body: { order_id, phone },
+  });
+}
+
+// ──────────────────────────────────────────────
+// ORDERS
+// ──────────────────────────────────────────────
+export function createOrder(data, token) {
+  return apiRequest("/orders", {
+    method: "POST",
+    token,
+    body: data,
+  });
+}
+
+export function getOrder(orderId, token) {
+  return apiRequest(`/orders/${orderId}`, { token });
+}
+
+export function getUserOrders(userId, token) {
+  return apiRequest(`/orders/user/${userId}`, { token });
+}
+
+// ──────────────────────────────────────────────
+// ORDER DETAILS
+// ──────────────────────────────────────────────
+export function getOrderDetails(orderId, token) {
+  return apiRequest(`/orders/${orderId}/details`, { token });
+}
+
+// ──────────────────────────────────────────────
+// REVIEWS
+// ──────────────────────────────────────────────
+export function getReviews() {
+  return apiRequest("/reviews");
+}
+
+export function createReview(reviewData, token) {
+  return apiRequest("/reviews", {
+    method: "POST",
+    token,
+    body: reviewData,
+  });
+}
+
+// ──────────────────────────────────────────────
+// UPLOAD (image)
+// ──────────────────────────────────────────────
+export function uploadImage(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  return apiRequest("/upload", {
+    method: "POST",
+    body: formData,
+  });
+}
+
+// ──────────────────────────────────────────────
+// ARTIST PAYOUTS
+// ──────────────────────────────────────────────
+// export function getArtistPayouts(artistId, token) {
+//   return apiRequest(`/artists/${artistId}/payouts`, { token });
+// }
+
+// export function createArtistPayout(payoutData, token) {
+//   return apiRequest("/artist-payouts", {
+//     method: "POST",
+//     token,
+//     body: payoutData,
+//   });
+// }
+
+// ──────────────────────────────────────────────
+// CERTIFICATES (Hakika ya Kienyeji)
+// ──────────────────────────────────────────────
+export function verifyPaintingCertificate(paintingId) {
+  return apiRequest(`/certificates/verify/${paintingId}`);
+}
+
+export function issuePaintingCertificate({ painting_id, force = false }, token = null) {
+  return apiRequest("/certificates/issue", {
+    method: "POST",
+    token,
+    body: { painting_id, force },
+  });
+}
+
+/* ========= PASSWORD RESET ========= */
+
+export function forgotPassword(email) {
+  return apiRequest("/auth/forgot-password", {
+    method: "POST",
+    body: { email },
+  });
+}
+
+export function validateResetToken(token) {
+  return apiRequest(`/auth/validate-reset-token?token=${token}`);
+}
+
+export function resetPassword(token, new_password) {
+  return apiRequest("/auth/reset-password", {
+    method: "POST",
+    body: { token, new_password },
+  });
+}
+
+// js/api.js
+
+// ... [ALL YOUR EXISTING CODE REMAINS UNCHANGED] ...
+
+// ──────────────────────────────────────────────
+// ARTIST PAYOUTS (ENHANCED)
+// ──────────────────────────────────────────────
+export function getArtistPayouts(artistId, token) {
+  return apiRequest(`/artists/${artistId}/payouts`, { token });
+}
+
+export function createArtistPayout(payoutData, token) {
+  return apiRequest("/artist-payouts", {
+    method: "POST",
+    token,
+    body: payoutData,
+  });
+}
+
+// New payout endpoints
+export function getArtistBalance(artistId, token) {
+  return apiRequest(`/artists/${artistId}/balance`, { token });
+}
+
+export function processPayout(payoutId, token) {
+  return apiRequest(`/payouts/${payoutId}/process`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function processBulkPayouts(token) {
+  return apiRequest("/payouts/process-bulk", {
+    method: "POST",
+    token,
+  });
+}
+
+export function getPlatformEarnings(token) {
+  return apiRequest("/platform/earnings", { token });
+}
+
+export function getAllPayouts(token) {
+  return apiRequest("/artist-payouts", { token });
+}
+
+export function getPayoutById(payoutId, token) {
+  return apiRequest(`/artist-payouts/${payoutId}`, { token });
+}
+
+export function updatePayoutStatus(payoutId, status, token) {
+  return apiRequest(`/artist-payouts/${payoutId}`, {
+    method: "PUT",
+    token,
+    body: { status },
+  });
+}
+
+// ──────────────────────────────────────────────
+// ADMIN SPECIFIC ENDPOINTS
+// ──────────────────────────────────────────────
+export function getAllOrders(token) {
+  return apiRequest("/orders", { token });
+}
+
+export function getAllUsers(token) {
+  return apiRequest("/users", { token });
+}
+
+export function updateUser(userId, data, token) {
+  return apiRequest(`/users/${userId}`, {
+    method: "PUT",
+    token,
+    body: data,
+  });
+}
+
+export function suspendUser(userId, token) {
+  return apiRequest(`/users/${userId}/suspend`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function activateUser(userId, token) {
+  return apiRequest(`/users/${userId}/activate`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function deleteUser(userId, token) {
+  return apiRequest(`/users/${userId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+export function createAdminUser(userData, token) {
+  return apiRequest("/users/create-admin", {
+    method: "POST",
+    token,
+    body: userData,
+  });
+}
+
+export function promoteToAdmin(userId, token) {
+  return apiRequest(`/users/${userId}/promote-admin`, {
+    method: "POST",
+    token,
+  });
+}
+
+export function getAllPayments(token) {
+  return apiRequest("/payments", { token });
+}
+
+// ===== DELIVERIES =====
 
 /**
- * Create delivery & calculate shipping fee
+ * Create a new delivery record
  * POST /deliveries
- *
- * Typical body:
- * {
- *   order_id,
- *   address_id
- * }
  */
 export function createDelivery(data, token) {
   return apiRequest("/deliveries", {
@@ -284,41 +477,43 @@ export function createDelivery(data, token) {
   });
 }
 
-
-/* ========= PAYMENTS ========= */
+/**
+ * Get delivery by ID
+ * GET /deliveries/:delivery_id
+ */
+export function getDelivery(deliveryId, token) {
+  return apiRequest(`/deliveries/${deliveryId}`, { token });
+}
 
 /**
- * Initiate M‑Pesa STK push for an order.
- * POST /payments
- * Body: { order_id, phone }
+ * Update delivery status and details
+ * PUT /deliveries/:delivery_id
  */
-export function initiateMpesaPayment({ order_id, phone }, token) {
-  return apiRequest("/payments", {
-    method: "POST",
+export function updateDelivery(deliveryId, data, token) {
+  return apiRequest(`/deliveries/${deliveryId}`, {
+    method: "PUT",
     token,
-    body: { order_id, phone },
+    body: data,
   });
 }
 
-/* ========= ORDERS ========= */
+/**
+ * Delete delivery record
+ * DELETE /deliveries/:delivery_id
+ */
+export function deleteDelivery(deliveryId, token) {
+  return apiRequest(`/deliveries/${deliveryId}`, {
+    method: "DELETE",
+    token,
+  });
+}
 
 /**
- * Create order.
- * POST /orders
- *
- * Backend uses current_user from the session (Flask-Login),
- * so you do NOT send user_id in the body.
- *
- * Expected body (matches OrderListResource.post):
- * {
- *   paintings_subtotal,
- *   paintings,       // array like [{ painting_id, quantity }, ...]
- *   delivery_cost,
- *   status           // e.g. "pending" | "awaiting_payment"
- * }
+ * Ship order with tracking info
+ * POST /deliveries/:delivery_id/ship
  */
-export function createOrder(data, token) {
-  return apiRequest("/orders", {
+export function shipDelivery(deliveryId, data, token) {
+  return apiRequest(`/deliveries/${deliveryId}/ship`, {
     method: "POST",
     token,
     body: data,
@@ -326,49 +521,63 @@ export function createOrder(data, token) {
 }
 
 /**
- * Get a single order
- * GET /orders/<order_id>
+ * Get all deliveries (admin)
+ * GET /deliveries/all
  */
-export function getOrder(orderId, token) {
-  return apiRequest(`/orders/${orderId}`, {
-    token,
-  });
+export function getAllDeliveries(token, statusFilter = null) {
+  const url = statusFilter && statusFilter !== "all" 
+    ? `/deliveries/all?status=${statusFilter}` 
+    : "/deliveries/all";
+  return apiRequest(url, { token });
 }
-/**
- * Get all orders for a user
- * GET /orders/user/<user_id>
- */
-export function getUserOrders(userId, token) {
-  return apiRequest(`/orders/user/${userId}`, {
-    token,
-  });
-}
-/* ========= ORDER DETAILS ========= */
 
 /**
- * Get line items (order details) for an order
- * GET /orders/<order_id>/details
+ * Mark delivery as delivered
  */
-export function getOrderDetails(orderId, token) {
-  return apiRequest(`/orders/${orderId}/details`, {
+export function markAsDelivered(deliveryId, notes = "", token) {
+  return apiRequest(`/deliveries/${deliveryId}`, {
+    method: "PUT",
     token,
-  });
-}
-/* ========= CERTIFICATES (Hakika ya Kienyeji) ========= */
-
-// Verify certificate for a painting
-// GET /certificates/verify/<painting_id>
-export function verifyPaintingCertificate(paintingId) {
-  return apiRequest(`/certificates/verify/${paintingId}`);
-}
-
-// (Optional) Issue / re-issue certificate
-// POST /certificates/issue  { painting_id, force }
-export function issuePaintingCertificate({ painting_id, force = false }, token = null) {
-  return apiRequest("/certificates/issue", {
-    method: "POST",
-    token,
-    body: { painting_id, force },
+    body: { status: "delivered", notes },
   });
 }
 
+/**
+ * Mark delivery as processing
+ */
+export function markAsProcessing(deliveryId, notes = "", token) {
+  return apiRequest(`/deliveries/${deliveryId}`, {
+    method: "PUT",
+    token,
+    body: { status: "processing", notes },
+  });
+}
+
+/**
+ * Cancel delivery
+ */
+export function cancelDelivery(deliveryId, reason = "", token) {
+  return apiRequest(`/deliveries/${deliveryId}`, {
+    method: "PUT",
+    token,
+    body: { status: "cancelled", notes: reason },
+  });
+}
+
+/**
+ * Update tracking information
+ */
+export function updateTrackingInfo(deliveryId, trackingNumber, carrier, estimatedDelivery = null, token) {
+  const data = {
+    tracking_number: trackingNumber,
+    carrier: carrier,
+  };
+  if (estimatedDelivery) {
+    data.estimated_delivery = estimatedDelivery;
+  }
+  return apiRequest(`/deliveries/${deliveryId}`, {
+    method: "PUT",
+    token,
+    body: data,
+  });
+}

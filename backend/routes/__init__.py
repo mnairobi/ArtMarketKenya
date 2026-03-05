@@ -1,4 +1,11 @@
-from controllers.user import UserRegisterResource, UserLoginResource, UserResource, UserListResource
+from controllers.user import (
+UserRegisterResource,
+    BuyerLoginResource,
+    ArtistLoginResource,
+    AdminLoginResource,
+    UserResource,
+    UserListResource
+)
 from controllers.artist import ArtistResource, ArtistDetailResource
 from controllers.category import CategoryResource, CategoryListResource
 from controllers.painting import PaintingResource, PaintingListResource,PaintingCreateResource
@@ -6,28 +13,55 @@ from controllers.order import OrderResource, OrderListResource  , BuyerOrdersRes
 from controllers.orderDetails import OrderDetailsListResource, OrderDetailResource
 from controllers.payments import PaymentResource
 from controllers.address import AddressListResource,AddressResource
-from controllers.delivery import DeliveryResource, DeliveryListResource
+from controllers.delivery import DeliveryResource, DeliveryListResource,DeliveryResource,DeliveryListResource,DeliveryShipResource,AllDeliveriesResource
 from controllers.review import ReviewResource, ReviewListResource
 from controllers.wishlist import WishlistResource, WishlistClearResource
-from controllers.artistPayout import ArtistPayoutResource, ArtistPayoutListResource
+from controllers.artistPayout import ArtistPayoutResource, ArtistPayoutListResource,ArtistBalanceResource,ProcessPayoutResource,BulkPayoutResource,PlatformEarningsResource
 from controllers.cart import CartResource, CartClearResource, CartItemResource
 from controllers.cartItem import CartItemListResource , CartItemResource
 from controllers.stock import StockResource, StockReduceResource
 from controllers.upload import UploadResource
 from controllers.certificate import CertificateIssueResource, CertificateVerifyResource
+from controllers.passwordReset import ForgotPasswordResource,ResetPasswordResource,ValidateResetTokenResource
+from controllers.admin import CreateAdminResource,PromoteToAdminResource,UserSuspendResource,UserActivateResource
+
+
 
 from flask_cors import CORS
 
 def register_routes(app):
     from flask_restful import Api
-    CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
+    # CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
+
+    CORS(app, 
+         resources={r"/*": {"origins": [
+             "http://localhost:5173",
+             "http://127.0.0.1:5173",
+             "http://localhost:5000",
+             "http://127.0.0.1:5000"
+         ]}}, 
+         supports_credentials=True,
+         allow_headers=["Content-Type", "Authorization"],
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
 
     api = Api(app)
 
     api.add_resource(UserRegisterResource, '/users/register')
-    api.add_resource(UserLoginResource, '/users/login')
+    # api.add_resource(UserLoginResource, '/users/login')
     api.add_resource(UserResource, '/users/<int:user_id>')
     api.add_resource(UserListResource, '/users')
+
+    api.add_resource(BuyerLoginResource,   '/auth/login/buyer')
+    api.add_resource(ArtistLoginResource,  '/auth/login/artist')
+    api.add_resource(AdminLoginResource,   '/auth/login/admin')
+
+        # Password reset
+    api.add_resource(ForgotPasswordResource,      '/auth/forgot-password')
+    api.add_resource(ResetPasswordResource,       '/auth/reset-password')
+    api.add_resource(ValidateResetTokenResource,  '/auth/validate-reset-token')
+
+     # Artist routes
 
     api.add_resource(ArtistResource, '/artists')
     api.add_resource(ArtistDetailResource, '/artists/<int:artist_id>')
@@ -90,10 +124,11 @@ def register_routes(app):
     # delivery routes
     api.add_resource(DeliveryResource, '/deliveries')
     api.add_resource(DeliveryListResource, '/deliveries/<int:delivery_id>')
-
     api.add_resource(ReviewListResource, "/reviews")
     api.add_resource(ReviewResource, "/reviews/<int:review_id>")
-    
+    api.add_resource(DeliveryShipResource, '/deliveries/<int:delivery_id>/ship')
+    api.add_resource(AllDeliveriesResource, '/deliveries/all')
+        
 
     #wishlist routes
     api.add_resource(WishlistResource, '/wishlists/<int:user_id>')
@@ -104,6 +139,10 @@ def register_routes(app):
     api.add_resource(ArtistPayoutListResource, '/artists/<int:artist_id>/payouts', endpoint="artist_payouts")
     api.add_resource(ArtistPayoutResource, '/artist-payouts/<int:payout_id>')
 
+    api.add_resource(ArtistBalanceResource, '/artists/<int:artist_id>/balance')
+    api.add_resource(ProcessPayoutResource, '/payouts/<int:payout_id>/process')
+    api.add_resource(BulkPayoutResource, '/payouts/process-bulk')
+    api.add_resource(PlatformEarningsResource, '/platform/earnings')
 
     
 
@@ -130,3 +169,9 @@ def register_routes(app):
     # Certificate routes
     api.add_resource(CertificateIssueResource, "/certificates/issue")
     api.add_resource(CertificateVerifyResource, "/certificates/verify/<int:painting_id>")
+
+  
+    api.add_resource(CreateAdminResource, '/users/create-admin')
+    api.add_resource(PromoteToAdminResource, '/users/<int:user_id>/promote-admin')
+    api.add_resource(UserSuspendResource, '/users/<int:user_id>/suspend')
+    api.add_resource(UserActivateResource, '/users/<int:user_id>/activate')

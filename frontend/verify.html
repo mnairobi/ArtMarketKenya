@@ -2,90 +2,298 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <title>Verify Artwork - Hakika ya Kienyeji</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Verify Artwork | Hakika ya Kienyeji</title>
+  <meta name="description" content="Verify the authenticity of artwork using blockchain technology" />
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gradient-to-br from-green-50 to-indigo-50 min-h-screen">
 
-<body class="bg-gray-50 min-h-screen">
-  <header class="bg-white shadow">
+  <!-- Header -->
+  <header class="bg-white shadow-sm border-b">
     <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="./index.html" class="text-xl font-bold text-indigo-700">
-        Art<span class="text-gray-900">Market</span>
+      <a href="./index.html" class="flex items-center gap-2">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+        <span class="text-xl font-bold text-gray-800">
+          <span class="text-green-600">Hakika</span> ya Kienyeji
+        </span>
       </a>
-      <span class="text-xs text-gray-500">Hakika Verification</span>
+      <nav class="flex gap-3 text-sm">
+        <a href="./index.html" class="text-gray-600 hover:text-indigo-600">Browse Art</a>
+      </nav>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 py-8 space-y-6">
-    <div class="bg-white rounded-2xl shadow p-6">
-      <h1 class="text-lg font-semibold text-gray-900">Certificate Verification</h1>
-      <p class="text-sm text-gray-600 mt-1">
-        This page verifies the artwork certificate stored on IPFS.
+  <!-- Main Content -->
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    
+    <!-- Hero Section -->
+    <div class="text-center mb-6">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
+        <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+        </svg>
+      </div>
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+        Verify Artwork Authenticity
+      </h1>
+      <p class="text-gray-600">
+        Blockchain-verified certificate of authenticity
       </p>
-
-      <div id="verify-status" class="mt-4 hidden rounded-xl border p-4 text-sm"></div>
-
-      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-  <!-- Artwork card -->
-  <div class="border rounded-xl p-4 bg-gray-50">
-    <p class="text-xs text-gray-500">Artwork</p>
-    <p id="art-title" class="mt-1 font-semibold text-gray-900">-</p>
-    <p id="art-artist" class="text-sm text-gray-700 mt-1">-</p>
-    <p id="art-meta" class="text-xs text-gray-500 mt-2">-</p>
-  </div>
-
-  <!-- IPFS proof card -->
-  <div class="border rounded-xl p-4 bg-gray-50">
-    <p class="text-xs text-gray-500">IPFS Proof</p>
-    <p class="text-xs text-gray-500 mt-2">CID</p>
-    <p id="art-cid" class="text-sm text-gray-800 break-all">-</p>
-
-    <a id="ipfs-link" href="#" target="_blank"
-       class="inline-block mt-3 text-sm text-indigo-600 hover:underline break-all">
-      -
-    </a>
-
-    <div class="mt-4 border-t pt-3">
-      <p class="text-xs text-gray-500">Hash check</p>
-      <p class="text-xs text-gray-500 mt-2">Stored hash</p>
-      <p id="hash-stored" class="text-xs text-gray-800 break-all">-</p>
-      <p class="text-xs text-gray-500 mt-2">Computed hash</p>
-      <p id="hash-computed" class="text-xs text-gray-800 break-all">-</p>
     </div>
-  </div>
 
-  <!-- QR code card (full width on desktop) -->
-  <div class="border rounded-xl p-4 bg-gray-50 md:col-span-2">
-    <p class="text-xs text-gray-500">QR Code (scan to open this verification page)</p>
-    <div class="mt-3 flex flex-col sm:flex-row sm:items-center gap-4">
-      <img id="qr-img" class="w-44 h-44 object-contain bg-white border rounded-lg" alt="QR Code" />
-      <div>
-        <a id="qr-download" href="#"
-           class="inline-block text-sm text-indigo-600 hover:underline">
-          Download QR PNG
-        </a>
-        <p class="text-xs text-gray-500 mt-2">
-          Tip: Print and attach this QR at the back of the canvas/packaging.
-        </p>
+    <!-- Status Message -->
+    <div id="verify-status" class="hidden mb-6 rounded-xl border p-4 text-sm">
+      <!-- JS will populate this -->
+    </div>
+
+    <!-- Artwork Certificate Card -->
+    <div class="bg-white rounded-2xl shadow-xl overflow-hidden mb-6 border-2 border-green-200">
+      
+      <!-- Header with Title -->
+      <div class="bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-4">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+          </svg>
+          <span class="text-white text-sm font-semibold uppercase tracking-wide">Certified Authentic</span>
+        </div>
+        <h2 id="art-title" class="text-2xl md:text-3xl font-bold text-white mb-1">
+          Loading...
+        </h2>
+        <p id="art-artist" class="text-green-100 text-lg">Artist: Loading...</p>
+      </div>
+
+      <!-- Artwork Image Section -->
+      <div class="relative bg-gray-100 min-h-[200px]">
+        <div id="image-loading" class="absolute inset-0 flex items-center justify-center">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-green-600"></div>
+        </div>
+        <img 
+          id="art-image" 
+          src="" 
+          alt="Artwork" 
+          class="w-full max-h-[400px] object-contain mx-auto"
+        />
+      </div>
+
+      <!-- Artwork Description -->
+      <div id="art-description-wrap" class="hidden px-6 py-4 bg-gray-50 border-t border-b">
+        <p id="art-description" class="text-gray-700 text-sm italic"></p>
+      </div>
+      
+      <div class="p-6 space-y-6">
+        <!-- Artwork Details Grid -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="bg-gray-50 rounded-lg p-3">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+              Materials
+            </label>
+            <p id="art-materials" class="text-gray-800 font-medium text-sm">Loading...</p>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg p-3">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+              Origin
+            </label>
+            <p id="art-location" class="text-gray-800 font-medium text-sm">Loading...</p>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg p-3">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+              Certified On
+            </label>
+            <p id="art-date" class="text-gray-800 font-medium text-sm">Loading...</p>
+          </div>
+
+          <div class="bg-gray-50 rounded-lg p-3">
+            <label class="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-1">
+              Original Price
+            </label>
+            <p id="art-price" class="text-gray-800 font-medium text-sm">Loading...</p>
+          </div>
+        </div>
+
+        <!-- What This Means -->
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+          <div class="flex gap-3">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <div class="flex-1">
+              <h3 class="font-semibold text-green-900 mb-2">What This Certificate Guarantees</h3>
+              <ul class="text-sm text-green-800 space-y-1">
+                <li>✓ This is an <strong>original artwork</strong> verified by the artist</li>
+                <li>✓ Certificate is <strong>permanently stored</strong> on blockchain</li>
+                <li>✓ Details <strong>cannot be altered</strong> or faked</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Buy This Artwork Button -->
+        <div class="text-center pt-2">
+          <a 
+            id="buy-artwork-btn"
+            href="#" 
+            class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            View & Purchase This Artwork
+          </a>
+        </div>
+
+        <!-- Show Technical Details Button -->
+        <div class="text-center pt-2 border-t">
+          <button 
+            id="toggle-tech-btn"
+            class="text-sm text-indigo-600 hover:text-indigo-800 underline mt-4"
+          >
+            🔽 Show Technical Details
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-</div>
 
-      <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Technical Details (Hidden by Default) -->
+    <div id="tech-details" class="hidden space-y-6">
+      
+      <!-- Certificate ID -->
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="bg-gray-700 px-6 py-4">
+          <h3 class="text-lg font-bold text-white">🔗 Blockchain Certificate ID</h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase">IPFS CID</label>
+            <div class="mt-2 flex items-center gap-2">
+              <code id="art-cid" class="text-xs bg-gray-100 px-3 py-2 rounded flex-1 truncate font-mono border">-</code>
+              <button id="copy-cid-btn" class="px-3 py-2 bg-indigo-100 text-indigo-700 rounded hover:bg-indigo-200 text-xs">📋 Copy</button>
+            </div>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase">View on IPFS</label>
+            <a id="ipfs-link" href="#" target="_blank" class="mt-1 block text-sm text-indigo-600 hover:underline truncate">-</a>
+          </div>
+        </div>
+      </div>
 
+      <!-- Hash Verification -->
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="bg-purple-600 px-6 py-4">
+          <h3 class="text-lg font-bold text-white">🔐 Hash Verification</h3>
+        </div>
+        <div class="p-6 space-y-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase">Stored Hash</label>
+            <code id="hash-stored" class="mt-1 block text-xs bg-gray-100 px-3 py-2 rounded break-all font-mono border">-</code>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 uppercase">Computed Hash</label>
+            <code id="hash-computed" class="mt-1 block text-xs bg-gray-100 px-3 py-2 rounded break-all font-mono border">-</code>
+          </div>
+          <div id="hash-match-status" class="pt-3 border-t">
+            <!-- JS will show match status -->
+          </div>
+        </div>
+      </div>
 
-  <!-- keep your Artwork/IPFS card on the other side or below -->
-</div>
-
-      <details class="mt-6">
-        <summary class="cursor-pointer text-sm text-gray-700">Show raw certificate JSON</summary>
-        <pre id="raw-json" class="mt-3 text-xs bg-gray-900 text-gray-100 rounded-xl p-4 overflow-auto"></pre>
-      </details>
+      <!-- Raw JSON -->
+      <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div class="bg-gray-800 px-6 py-4 flex justify-between items-center">
+          <h3 class="text-lg font-bold text-white">📄 Raw Certificate Data</h3>
+          <button id="copy-json-btn" class="px-3 py-1 bg-white/20 text-white rounded hover:bg-white/30 text-xs">
+            📋 Copy JSON
+          </button>
+        </div>
+        <div class="p-6">
+          <pre id="raw-json" class="text-xs bg-gray-50 p-4 rounded overflow-x-auto border max-h-64">{}</pre>
+        </div>
+      </div>
     </div>
+
+    <!-- QR Code Section -->
+    <div class="bg-white rounded-2xl shadow-lg overflow-hidden mt-6">
+      <div class="bg-gradient-to-r from-blue-500 to-indigo-600 px-6 py-4">
+        <h3 class="text-lg font-bold text-white">📱 Share This Certificate</h3>
+      </div>
+      <div class="p-6">
+        <div class="flex flex-col md:flex-row items-center gap-6">
+          <!-- QR Code -->
+          <div class="text-center">
+            <p class="text-sm text-gray-600 mb-3">Scan to verify this artwork</p>
+            <div class="inline-block p-3 bg-white border-4 border-indigo-100 rounded-xl shadow-sm">
+              <img id="qr-img" src="" alt="QR Code" class="w-[160px] h-[160px] bg-gray-100" />
+            </div>
+          </div>
+          
+          <!-- Share Options -->
+          <div class="flex-1 space-y-3">
+            <p class="text-sm text-gray-700 font-medium">Share this verification:</p>
+            <div class="flex flex-wrap gap-2">
+              <a id="qr-download" href="#" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Download QR
+              </a>
+              <button id="copy-link-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                Copy Link
+              </button>
+              <button id="share-whatsapp-btn" class="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                WhatsApp
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">
+              💡 Tip: Print this QR code and attach it to the back of the physical artwork for instant verification.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back to Gallery -->
+    <div class="mt-8 text-center">
+      <a href="./index.html" class="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        </svg>
+        Browse Art Collection
+      </a>
+    </div>
+
   </main>
 
+  <!-- Footer -->
+  <footer class="bg-white border-t mt-12 py-6">
+    <div class="max-w-4xl mx-auto px-4 text-center text-sm text-gray-600">
+      <a href="./index.html" class="text-indigo-600 hover:underline">ArtMarket Kenya</a> • 
+      Powered by <strong>Hakika ya Kienyeji</strong> Blockchain Certificates
+    </div>
+  </footer>
+
+  <!-- Print Styles -->
+  <style>
+    @media print {
+      header, footer, button, #toggle-tech-btn, #buy-artwork-btn, .no-print {
+        display: none !important;
+      }
+      body { background: white !important; }
+      #art-image { max-height: 300px !important; }
+    }
+  </style>
+
+  <!-- Load verify.js -->
   <script type="module" src="./js/verify.js"></script>
 </body>
 </html>
