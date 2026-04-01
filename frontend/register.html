@@ -2,106 +2,195 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Register | Art Market</title>
+  <title>Create Account — SANAA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Google Sign-In -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'display': ['Playfair Display', 'serif'],
+            'sans': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'gallery': {
+              50: '#fafafa', 100: '#f5f5f5', 200: '#e5e5e5', 300: '#d4d4d4',
+              400: '#a3a3a3', 500: '#737373', 600: '#525252', 700: '#404040',
+              800: '#262626', 900: '#171717', 950: '#0a0a0a',
+            },
+            'accent': { DEFAULT: '#c9a962', light: '#dfc88a', dark: '#a88b3d' }
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    .auth-bg {
+      background: linear-gradient(135deg, #171717 0%, #262626 50%, #171717 100%);
+    }
+    .auth-pattern {
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23c9a962' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center py-8">
+<body class="auth-bg auth-pattern min-h-screen flex items-center justify-center p-4 font-sans antialiased">
 
-  <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-    <h2 class="text-2xl font-bold mb-2 text-center text-gray-700">Create Account</h2>
-    <p class="text-center text-gray-500 mb-6">Join the Kenyan Art Market</p>
-
-    <form id="registerForm" class="space-y-4">
-      <div>
-        <label for="username" class="block text-gray-600 mb-2">Username</label>
-        <input
-          type="text"
-          name="username"
-          id="username"
-          required
-          placeholder="Choose a username"
-          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <p class="text-xs text-gray-500 mt-1">This will be your display name</p>
-      </div>
-
-      <div>
-        <label for="email" class="block text-gray-600 mb-2">Email</label>
-        <input
-          type="email"
-          name="email"
-          id="email"
-          required
-          placeholder="your@email.com"
-          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-      </div>
-
-      <div>
-        <label for="password" class="block text-gray-600 mb-2">Password</label>
-        <input
-          type="password"
-          name="password"
-          id="password"
-          required
-          minlength="6"
-          placeholder="At least 6 characters"
-          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-        />
-        <div id="password-strength"></div>
-      </div>
-
-      <div>
-        <label for="role" class="block text-gray-600 mb-2">I want to:</label>
-        <select
-          name="role"
-          id="role"
-          class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
-        >
-          <option value="buyer" selected>Buy Art (Buyer)</option>
-          <option value="artist">Sell Art (Artist)</option>
-        </select>
-        <p class="text-xs text-gray-500 mt-1">You can change this later in your profile</p>
-      </div>
-
-      <!-- Terms and conditions -->
-      <div class="flex items-start">
-        <input
-          type="checkbox"
-          id="terms"
-          name="terms"
-          required
-          class="mt-1 mr-2"
-        />
-        <label for="terms" class="text-xs text-gray-600">
-          I agree to the <a href="#" class="text-blue-600 hover:underline">Terms and Conditions</a> 
-          and <a href="#" class="text-blue-600 hover:underline">Privacy Policy</a>
-        </label>
-      </div>
-
-      <button
-        type="submit"
-        class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium"
-      >
-        Register
-      </button>
-    </form>
-
-    <div class="mt-6 text-center">
-      <p class="text-gray-600">
-        Already have an account?
-      </p>
-      <div class="mt-2 space-x-4 text-sm">
-        <a href="./login.html" class="text-blue-600 hover:underline">Buyer Login</a>
-        <a href="./artist-login.html" class="text-green-600 hover:underline">Artist Login</a>
-        <a href="./admin-login.html" class="text-purple-600 hover:underline">Admin Login</a>
-      </div>
+  <div class="w-full max-w-md">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <a href="./index.html" class="inline-flex items-center gap-2">
+        <div class="w-12 h-12 bg-accent rounded-full flex items-center justify-center">
+          <span class="text-white font-display text-xl">S</span>
+        </div>
+        <span class="font-display text-3xl text-white">SANAA</span>
+      </a>
+      <p class="text-gallery-400 text-sm mt-2">Discover & Collect African Art</p>
     </div>
 
-    <p id="register-message" class="text-center mt-4 text-sm"></p>
+    <!-- Register Card -->
+    <div class="bg-white rounded-3xl shadow-2xl p-8">
+      <div class="text-center mb-6">
+        <h1 class="font-display text-2xl text-gallery-900 mb-2">Create Account</h1>
+        <p class="text-gallery-500 text-sm">Join our community of art lovers</p>
+      </div>
+
+      <!-- Google Sign-In Button -->
+      <div class="mb-6">
+        <div id="google-signin-btn" class="flex justify-center"></div>
+      </div>
+
+      <!-- Divider -->
+      <div class="relative my-6">
+        <div class="absolute inset-0 flex items-center">
+          <div class="w-full border-t border-gallery-200"></div>
+        </div>
+        <div class="relative flex justify-center text-sm">
+          <span class="px-4 bg-white text-gallery-500">or register with email</span>
+        </div>
+      </div>
+
+      <!-- Register Form -->
+      <form id="registerForm" class="space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-medium text-gallery-700 mb-2">Username</label>
+          <input type="text" id="username" name="username" required
+            placeholder="Choose a username"
+            class="w-full px-4 py-3 border border-gallery-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"/>
+        </div>
+
+        <div>
+          <label for="email" class="block text-sm font-medium text-gallery-700 mb-2">Email</label>
+          <input type="email" id="email" name="email" required
+            placeholder="you@example.com"
+            class="w-full px-4 py-3 border border-gallery-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"/>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gallery-700 mb-2">Password</label>
+          <div class="relative">
+            <input type="password" id="password" name="password" required minlength="6"
+              placeholder="At least 6 characters"
+              class="w-full px-4 py-3 border border-gallery-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition pr-12"/>
+            <button type="button" id="toggle-password" 
+              class="absolute right-4 top-1/2 -translate-y-1/2 text-gallery-400 hover:text-gallery-600 transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+              </svg>
+            </button>
+          </div>
+          <div id="password-strength" class="mt-2"></div>
+        </div>
+
+        <div>
+          <label for="role" class="block text-sm font-medium text-gallery-700 mb-2">I want to</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="relative">
+              <input type="radio" name="role" value="buyer" checked class="peer sr-only"/>
+              <div class="p-4 border-2 border-gallery-200 rounded-xl cursor-pointer peer-checked:border-accent peer-checked:bg-accent/5 transition text-center">
+                <svg class="w-6 h-6 mx-auto mb-2 text-gallery-600 peer-checked:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                </svg>
+                <span class="text-sm font-medium text-gallery-700">Buy Art</span>
+              </div>
+            </label>
+            <label class="relative">
+              <input type="radio" name="role" value="artist" class="peer sr-only"/>
+              <div class="p-4 border-2 border-gallery-200 rounded-xl cursor-pointer peer-checked:border-accent peer-checked:bg-accent/5 transition text-center">
+                <svg class="w-6 h-6 mx-auto mb-2 text-gallery-600 peer-checked:text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-sm font-medium text-gallery-700">Sell Art</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Terms -->
+        <div class="flex items-start gap-3">
+          <input type="checkbox" id="terms" name="terms" required 
+            class="mt-1 w-4 h-4 text-accent border-gallery-300 rounded focus:ring-accent"/>
+          <label for="terms" class="text-xs text-gallery-600">
+            I agree to the <a href="#" class="text-accent hover:underline">Terms of Service</a> 
+            and <a href="#" class="text-accent hover:underline">Privacy Policy</a>
+          </label>
+        </div>
+
+        <button type="submit" id="registerBtn"
+          class="w-full bg-gallery-900 text-white py-3.5 rounded-xl hover:bg-accent transition font-medium flex items-center justify-center gap-2">
+          <span>Create Account</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+          </svg>
+        </button>
+      </form>
+
+      <!-- Message -->
+      <p id="register-message" class="text-center mt-4 text-sm"></p>
+
+      <!-- Login Link -->
+      <p class="text-center text-gallery-600 mt-6">
+        Already have an account?
+        <a href="./login.html" class="text-accent font-medium hover:text-accent-dark transition">
+          Sign in
+        </a>
+      </p>
+    </div>
   </div>
 
   <script type="module" src="./js/auth.js"></script>
+  <script>
+    window.isRegisterPage = true;
+    
+    window.onload = function() {
+      if (typeof google !== 'undefined') {
+        google.accounts.id.initialize({
+          client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
+          callback: handleGoogleCredential,
+        });
+        
+        google.accounts.id.renderButton(
+          document.getElementById('google-signin-btn'),
+          { theme: 'outline', size: 'large', width: '100%', text: 'signup_with' }
+        );
+      }
+    };
+    
+    function handleGoogleCredential(response) {
+      const role = document.querySelector('input[name="role"]:checked')?.value || 'buyer';
+      window.handleGoogleSignIn?.(response.credential, role);
+    }
+  </script>
 </body>
 </html>

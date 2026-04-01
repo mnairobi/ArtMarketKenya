@@ -2,102 +2,243 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Art Marketplace – Order Details</title>
+  <title>Order Details — SANAA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'display': ['Playfair Display', 'serif'],
+            'sans': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'gallery': {
+              50: '#fafafa',
+              100: '#f5f5f5',
+              200: '#e5e5e5',
+              300: '#d4d4d4',
+              400: '#a3a3a3',
+              500: '#737373',
+              600: '#525252',
+              700: '#404040',
+              800: '#262626',
+              900: '#171717',
+              950: '#0a0a0a',
+            },
+            'accent': {
+              DEFAULT: '#c9a962',
+              light: '#dfc88a',
+              dark: '#a88b3d',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out',
+            'slide-up': 'slideUp 0.6s ease-out',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f5f5f5;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d4d4d4;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a3a3a3;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+<body class="bg-gallery-50 text-gallery-900 min-h-screen font-sans antialiased flex flex-col">
 
   <!-- Header -->
-  <header class="bg-white shadow">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="./index.html" class="text-xl font-bold text-indigo-700">
-        Art<span class="text-gray-900">Market</span>
-      </a>
+  <header class="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gallery-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+        
+        <!-- Logo -->
+        <a href="./index.html" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 bg-gallery-900 rounded-full flex items-center justify-center group-hover:bg-accent transition-colors duration-300">
+            <span class="text-white font-display text-lg">S</span>
+          </div>
+          <span class="font-display text-2xl tracking-tight hidden sm:block">
+            SANAA
+          </span>
+        </a>
 
-      <nav class="flex gap-4 text-sm">
-        <a href="./index.html" class="text-gray-600 hover:text-indigo-600">Home</a>
-        <a href="./cart.html" class="text-gray-600 hover:text-indigo-600">My Cart</a>
-        <a href="./my-orders.html" class="text-gray-600 hover:text-indigo-600">My Orders</a>
-        <a href="./login.html" class="text-gray-600 hover:text-indigo-600">Logout</a>
-      </nav>
+        <!-- Nav -->
+        <nav class="flex items-center gap-4 text-sm">
+          <a href="./index.html" class="text-gallery-600 hover:text-gallery-900 transition hidden sm:inline">Home</a>
+          <a href="./cart.html" class="text-gallery-600 hover:text-gallery-900 transition hidden sm:inline">Cart</a>
+          <a href="./my-orders.html" class="text-gallery-900 font-semibold">My Orders</a>
+          <a href="./login.html" class="text-gallery-600 hover:text-gallery-900 transition">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+          </a>
+        </nav>
+      </div>
     </div>
   </header>
 
-  <main class="flex-1">
-    <section class="max-w-6xl mx-auto px-4 py-8">
-      <div id="order-header" class="mb-4">
-        <!-- JS will set order # and date here -->
+  <!-- Main Content -->
+  <main class="flex-1 py-8 lg:py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Order Header -->
+      <div id="order-header" class="mb-8 animate-fade-in">
+        <!-- JS will populate -->
       </div>
 
-      <div
-        id="order-message"
-        class="mb-4 text-sm hidden"
-      ></div>
+      <!-- Message Area -->
+      <div id="order-message" class="mb-6 hidden">
+        <!-- JS will populate messages -->
+      </div>
 
-      <div id="order-content" class="grid grid-cols-1 md:grid-cols-3 gap-6 hidden">
-        <!-- LEFT: statuses + delivery -->
-        <div class="md:col-span-1 space-y-4">
-          <!-- Status card -->
-          <div class="bg-white rounded-lg shadow-sm p-4">
-            <h2 class="text-sm font-semibold mb-2 text-gray-800">Order status</h2>
-            <div id="payment-status" class="mb-2 text-xs"></div>
-            <div id="delivery-status" class="text-xs"></div>
-          </div>
+      <!-- Order Content -->
+      <div id="order-content" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          <!-- Delivery info card -->
-          <!-- <div class="bg-white rounded-lg shadow-sm p-4">
-            <h2 class="text-sm font-semibold mb-2 text-gray-800">Delivery</h2>
-            <div id="delivery-info" class="text-xs text-gray-600 space-y-1">
-       
+          <!-- LEFT COLUMN: Status Cards -->
+          <div class="lg:col-span-1 space-y-6">
+
+            <!-- Order Status Card -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 animate-slide-up">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+                  <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <h2 class="font-display text-lg text-gallery-900">Order Status</h2>
+              </div>
+              
+              <div class="space-y-3">
+                <div id="payment-status">
+                  <!-- JS will populate -->
+                </div>
+                <div id="delivery-status">
+                  <!-- JS will populate -->
+                </div>
+              </div>
             </div>
-          </div>
-        </div> -->
 
-        <!-- Delivery Information Section -->
-<div class="bg-white rounded-lg shadow p-6 mb-6">
-  <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
-    </svg>
-    Delivery Information
-  </h2>
-
-  <div id="delivery-info" class="space-y-4">
-    <!-- JS will populate this -->
-  </div>
-</div>
-
-        <!-- RIGHT: items + totals -->
-        <div class="md:col-span-2 space-y-4">
-          <!-- Items -->
-          <div class="bg-white rounded-lg shadow-sm p-4">
-            <h2 class="text-sm font-semibold mb-3 text-gray-800">Items in this order</h2>
-            <div id="order-items" class="space-y-2 text-sm max-h-80 overflow-y-auto">
-              <!-- JS will render order line items -->
+            <!-- Delivery Information Card -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 animate-slide-up" style="animation-delay: 0.1s">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+                  </svg>
+                </div>
+                <h2 class="font-display text-lg text-gallery-900">Delivery & Tracking</h2>
+              </div>
+              
+              <div id="delivery-info">
+                <!-- JS will populate delivery info -->
+                <div class="animate-pulse space-y-3">
+                  <div class="h-4 bg-gallery-200 rounded w-3/4"></div>
+                  <div class="h-4 bg-gallery-200 rounded w-1/2"></div>
+                </div>
+              </div>
             </div>
+
           </div>
 
-          <!-- Totals -->
-          <div class="bg-white rounded-lg shadow-sm p-4">
-            <h2 class="text-sm font-semibold mb-3 text-gray-800">Payment summary</h2>
-            <div id="order-totals" class="text-sm space-y-1">
-              <!-- JS will render subtotal, shipping, total -->
+          <!-- RIGHT COLUMN: Items & Payment -->
+          <div class="lg:col-span-2 space-y-6">
+
+            <!-- Order Items Card -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 animate-slide-up" style="animation-delay: 0.2s">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                  </svg>
+                </div>
+                <h2 class="font-display text-lg text-gallery-900">Order Items</h2>
+              </div>
+              
+              <div id="order-items" class="space-y-3 max-h-96 overflow-y-auto">
+                <!-- JS will populate items -->
+              </div>
             </div>
+
+            <!-- Payment Summary Card -->
+            <div class="bg-white rounded-2xl shadow-sm p-6 animate-slide-up" style="animation-delay: 0.3s">
+              <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                  </svg>
+                </div>
+                <h2 class="font-display text-lg text-gallery-900">Payment Summary</h2>
+              </div>
+              
+              <div id="order-totals" class="space-y-3">
+                <!-- JS will populate totals -->
+              </div>
+            </div>
+
           </div>
+        </div>
+
+        <!-- Back to Orders -->
+        <div class="mt-8 animate-fade-in" style="animation-delay: 0.4s">
+          <a href="./my-orders.html" class="inline-flex items-center gap-2 text-sm text-accent hover:text-accent-dark transition font-medium group">
+            <svg class="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back to My Orders
+          </a>
         </div>
       </div>
 
-      <div class="mt-6">
-        <a
-          href="./my-orders.html"
-          class="inline-flex items-center text-sm text-indigo-600 hover:underline"
-        >
-          ← Back to My Orders
-        </a>
-      </div>
-    </section>
+    </div>
   </main>
+
+  <!-- Footer -->
+  <footer class="bg-gallery-900 text-white py-8 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+            <span class="text-white font-display text-sm">S</span>
+          </div>
+          <span class="font-display text-lg">SANAA</span>
+        </div>
+        <p class="text-sm text-gallery-500">© 2024 SANAA. Your art, securely delivered.</p>
+      </div>
+    </div>
+  </footer>
 
   <script type="module" src="./js/order-details.js"></script>
 </body>

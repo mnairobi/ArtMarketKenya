@@ -9,8 +9,13 @@ import {
   addWishlistItem,
   removeWishlistItem,
   verifyPaintingCertificate,
+  getPaintingReviews,
+  createReview,
+  updateReview,
+  deleteReview,
 } from "./api.js";
 
+/* ========== State ========== */
 const state = {
   paintings: [],
   categories: [],
@@ -20,42 +25,140 @@ const state = {
   cartCount: 0,
   wishlist: new Set(),
   currentPainting: null,
+  currentReviews: [],
+  selectedRating: 0,
+  editingReviewId: null,
+  viewMode: "grid", // "grid" or "masonry"
+  sortBy: "newest",
 };
 
 const els = {};
 
+/* ========== Init ========== */
 document.addEventListener("DOMContentLoaded", () => {
-  // Main list + filters
+  cacheElements();
+  loadAuthFromStorage();
+  initEventListeners();
+  initHome();
+});
+
+function cacheElements() {
+  // Cart & Wishlist counts
   els.cartCount = document.getElementById("cart-count");
+  els.wishlistCount = document.getElementById("wishlist-count");
+  
+  // Gallery
   els.paintingsContainer = document.getElementById("paintings-container");
   els.categoryFilters = document.getElementById("category-filters");
   els.message = document.getElementById("paintings-message");
   els.cardTemplate = document.getElementById("painting-card-template");
-
-  // Painting Modal elements
+  els.loadMoreContainer = document.getElementById("load-more-container");
+  
+  // Painting Modal
   els.modal = document.getElementById("painting-modal");
   els.modalImage = document.getElementById("modal-main-image");
   els.modalTitle = document.getElementById("modal-title");
   els.modalArtist = document.getElementById("modal-artist");
   els.modalDesc = document.getElementById("modal-desc");
   els.modalPrice = document.getElementById("modal-price");
+  els.modalCategory = document.getElementById("modal-category");
+  els.modalCertBadge = document.getElementById("modal-cert-badge");
+  els.modalDimensions = document.getElementById("modal-dimensions");
+  els.modalMedium = document.getElementById("modal-medium");
+  els.modalYear = document.getElementById("modal-year");
+  els.modalStyle = document.getElementById("modal-style");
   els.modalWishlistBtn = document.getElementById("modal-wishlist-btn");
   els.modalClose = document.getElementById("modal-close");
   els.modalCertificate = document.getElementById("modal-certificate");
-
-  // Verification Modal elements
+  
+  // Reviews
+  els.modalReviews = document.getElementById("modal-reviews");
+  els.reviewsSummary = document.getElementById("reviews-summary");
+  els.reviewsList = document.getElementById("reviews-list");
+  els.reviewsCount = document.getElementById("reviews-count");
+  els.reviewFormContainer = document.getElementById("review-form-container");
+  els.reviewLoginPrompt = document.getElementById("review-login-prompt");
+  els.reviewForm = document.getElementById("review-form");
+  els.starRating = document.getElementById("star-rating");
+  els.reviewRating = document.getElementById("review-rating");
+  els.reviewComment = document.getElementById("review-comment");
+  els.submitReview = document.getElementById("submit-review");
+  
+  // Verification Modal
   els.verifyModal = document.getElementById("verification-modal");
   els.verifyContent = document.getElementById("verification-content");
   els.verifyClose = document.getElementById("verify-modal-close");
+  
+  // Search
+  els.searchOverlay = document.getElementById("search-overlay");
+  els.searchInput = document.getElementById("search-input");
+  els.searchToggle = document.getElementById("search-toggle");
+  els.searchClose = document.getElementById("search-close");
+  
+  // Mobile menu
+  els.mobileMenu = document.getElementById("mobile-menu");
+  els.mobileMenuToggle = document.getElementById("mobile-menu-toggle");
+  
+  // User dropdown
+  els.userDropdown = document.getElementById("user-dropdown");
+  els.userMenuToggle = document.getElementById("user-menu-toggle");
+  
+  // View & Sort
+  els.viewGrid = document.getElementById("view-grid");
+  els.viewMasonry = document.getElementById("view-masonry");
+  els.sortSelect = document.getElementById("sort-select");
+  
+  // Toast
+  els.toastContainer = document.getElementById("toast-container");
+}
 
-  loadAuthFromStorage();
+function initEventListeners() {
+  // Modal events
   initModalEvents();
   initVerificationModalEvents();
-  initHome();
-});
+  initReviewEvents();
+  
+  // Search
+  els.searchToggle?.addEventListener("click", openSearch);
+  els.searchClose?.addEventListener("click", closeSearch);
+  els.searchOverlay?.addEventListener("click", (e) => {
+    if (e.target === els.searchOverlay) closeSearch();
+  });
+  
+  // Mobile menu
+  els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
+  
+  // User dropdown
+  els.userMenuToggle?.addEventListener("click", toggleUserDropdown);
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#user-menu-container")) {
+      els.userDropdown?.classList.add("hidden");
+    }
+  });
+  
+  // View toggles
+  els.viewGrid?.addEventListener("click", () => setViewMode("grid"));
+  els.viewMasonry?.addEventListener("click", () => setViewMode("masonry"));
+  
+  // Sort
+  els.sortSelect?.addEventListener("change", (e) => {
+    state.sortBy = e.target.value;
+    renderPaintings(getSortedPaintings(getFilteredPaintings()));
+  });
+  
+  // Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      closeSearch();
+      closeVerificationModal();
+      closePaintingModal();
+      els.userDropdown?.classList.add("hidden");
+      els.mobileMenu?.classList.add("hidden");
+    }
+  });
+}
 
-/* ===== Auth & initial sync ===== */
-
+/* ========== Auth ========== */
 function loadAuthFromStorage() {
   try {
     const rawUser = localStorage.getItem("auth_user");
@@ -70,8 +173,10 @@ function loadAuthFromStorage() {
   }
 }
 
+/* ========== Init Home ========== */
 async function initHome() {
   showLoadingSkeletons();
+  
   try {
     const [categories, paintings] = await Promise.all([
       getAllCategories(),
@@ -81,31 +186,37 @@ async function initHome() {
     state.categories = categories || [];
     state.paintings = paintings || [];
 
-    await syncCartFromServer();
-    await syncWishlistFromServer();
+    // DEBUG: Log the first painting to see its structure
+    console.log("First painting data:", paintings[0]);
+    console.log("Available fields:", Object.keys(paintings[0] || {}));
+
+    await Promise.all([
+      syncCartFromServer(),
+      syncWishlistFromServer(),
+    ]);
 
     renderCategoryFilters();
-    renderPaintings(getFilteredPaintings());
+    renderPaintings(getSortedPaintings(getFilteredPaintings()));
     updateCartCountUI();
+    updateWishlistCountUI();
+    
   } catch (err) {
     console.error(err);
-    showMessage("Failed to load paintings. Please refresh.", true);
+    showMessage("Failed to load paintings. Please refresh the page.", true);
   }
 }
 
-/* ===== Cart sync ===== */
-
+/* ========== Cart Sync ========== */
 async function syncCartFromServer() {
   if (!state.currentUser || !state.authToken) {
     state.cartCount = 0;
-    updateCartCountUI();
     return;
   }
 
   try {
     const cart = await getCart(state.currentUser.id, state.authToken);
     const items = Array.isArray(cart.items) ? cart.items : [];
-    state.cartCount = items.length;
+    state.cartCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
   } catch (err) {
     if (err.status === 404) {
       state.cartCount = 0;
@@ -113,17 +224,16 @@ async function syncCartFromServer() {
       console.error("Error loading cart:", err);
     }
   }
-  updateCartCountUI();
 }
 
 function updateCartCountUI() {
   if (els.cartCount) {
     els.cartCount.textContent = state.cartCount;
+    els.cartCount.classList.toggle("hidden", state.cartCount === 0);
   }
 }
 
-/* ===== Wishlist sync ===== */
-
+/* ========== Wishlist Sync ========== */
 async function syncWishlistFromServer() {
   if (!state.currentUser || !state.authToken) {
     state.wishlist = new Set();
@@ -143,24 +253,47 @@ async function syncWishlistFromServer() {
   }
 }
 
-/* ===== Rendering ===== */
+function updateWishlistCountUI() {
+  if (els.wishlistCount) {
+    const count = state.wishlist.size;
+    els.wishlistCount.textContent = count;
+    els.wishlistCount.classList.toggle("hidden", count === 0);
+  }
+}
 
+/* ========== Rendering ========== */
 function showLoadingSkeletons() {
   if (!els.paintingsContainer) return;
   els.message?.classList.add("hidden");
-  els.paintingsContainer.innerHTML = Array.from({ length: 8 })
-    .map(
-      () => `<div class="animate-pulse bg-gray-200 rounded-lg h-64"></div>`
-    )
+  
+  const skeletonCount = 8;
+  els.paintingsContainer.innerHTML = Array.from({ length: skeletonCount })
+    .map(() => `
+      <div class="bg-white rounded-2xl overflow-hidden shadow-sm">
+        <div class="aspect-[4/5] skeleton"></div>
+        <div class="p-4 space-y-3">
+          <div class="h-4 skeleton rounded w-3/4"></div>
+          <div class="h-3 skeleton rounded w-1/2"></div>
+          <div class="flex justify-between items-center pt-2">
+            <div class="h-5 skeleton rounded w-1/3"></div>
+            <div class="h-8 skeleton rounded w-16"></div>
+          </div>
+        </div>
+      </div>
+    `)
     .join("");
 }
 
 function showMessage(text, isError = false) {
   if (!els.message) return;
-  els.message.textContent = text;
+  
+  const messageContent = els.message.querySelector("p.text-lg");
+  if (messageContent) {
+    messageContent.textContent = text;
+  }
+  
   els.message.classList.remove("hidden");
   els.message.classList.toggle("text-red-600", isError);
-  els.message.classList.toggle("text-gray-500", !isError);
 }
 
 function renderCategoryFilters() {
@@ -168,44 +301,63 @@ function renderCategoryFilters() {
   if (!container) return;
 
   container.innerHTML = "";
-  const base = "px-3 py-1 rounded-full border text-xs md:text-sm transition cursor-pointer";
-  const active = "bg-indigo-600 text-white border-indigo-600";
-  const inactive = "bg-white text-gray-700 border-gray-300 hover:bg-gray-50";
+
+  const createButton = (id, name, isActive) => {
+    const btn = document.createElement("button");
+    btn.textContent = name;
+    btn.dataset.categoryId = id;
+    btn.className = `px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+      isActive
+        ? "bg-gallery-900 text-white shadow-lg"
+        : "bg-white text-gallery-600 border border-gallery-200 hover:border-gallery-400 hover:text-gallery-900"
+    }`;
+    btn.addEventListener("click", () => {
+      state.selectedCategoryId = id;
+      renderCategoryFilters();
+      renderPaintings(getSortedPaintings(getFilteredPaintings()));
+    });
+    return btn;
+  };
 
   // "All" button
-  const allBtn = document.createElement("button");
-  allBtn.textContent = "All";
-  allBtn.dataset.categoryId = "all";
-  allBtn.className = base + " " + (state.selectedCategoryId === "all" ? active : inactive);
-  allBtn.addEventListener("click", () => {
-    state.selectedCategoryId = "all";
-    renderCategoryFilters();
-    renderPaintings(getFilteredPaintings());
-  });
-  container.appendChild(allBtn);
+  container.appendChild(createButton("all", "All Artworks", state.selectedCategoryId === "all"));
 
+  // Category buttons
   state.categories.forEach((cat) => {
-    const btn = document.createElement("button");
-    btn.textContent = cat.name || `Category #${cat.id}`;
-    btn.dataset.categoryId = String(cat.id);
-    btn.className =
-      base + " " + (String(state.selectedCategoryId) === String(cat.id) ? active : inactive);
-    btn.addEventListener("click", () => {
-      state.selectedCategoryId = String(cat.id);
-      renderCategoryFilters();
-      renderPaintings(getFilteredPaintings());
-    });
-    container.appendChild(btn);
+    const isActive = String(state.selectedCategoryId) === String(cat.id);
+    container.appendChild(createButton(String(cat.id), cat.name || `Category ${cat.id}`, isActive));
   });
 }
 
 function getFilteredPaintings() {
   if (state.selectedCategoryId === "all") {
-    return state.paintings;
+    return [...state.paintings];
   }
   return state.paintings.filter(
     (p) => String(p.category_id) === String(state.selectedCategoryId)
   );
+}
+
+function getSortedPaintings(paintings) {
+  const sorted = [...paintings];
+  
+  switch (state.sortBy) {
+    case "price-low":
+      sorted.sort((a, b) => Number(a.price) - Number(b.price));
+      break;
+    case "price-high":
+      sorted.sort((a, b) => Number(b.price) - Number(a.price));
+      break;
+    case "popular":
+      sorted.sort((a, b) => (b.views || 0) - (a.views || 0));
+      break;
+    case "newest":
+    default:
+      sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      break;
+  }
+  
+  return sorted;
 }
 
 function renderPaintings(paintings) {
@@ -213,224 +365,283 @@ function renderPaintings(paintings) {
   if (!container) return;
 
   container.innerHTML = "";
+
   if (!paintings || paintings.length === 0) {
-    showMessage("No paintings found for this category yet.");
+    showMessage("No artworks found in this category.");
+    els.loadMoreContainer?.classList.add("hidden");
     return;
+  }
+
+  els.message?.classList.add("hidden");
+
+  // Set grid/masonry classes
+  if (state.viewMode === "masonry") {
+    container.className = "masonry-grid";
   } else {
-    els.message?.classList.add("hidden");
+    container.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
   }
 
   const tpl = els.cardTemplate;
   if (!tpl) return;
 
-  const categoryMap = new Map(
-    (state.categories || []).map((c) => [c.id, c.name])
-  );
+  const categoryMap = new Map(state.categories.map((c) => [c.id, c.name]));
 
-  paintings.forEach((p) => {
+  paintings.forEach((p, index) => {
     const clone = tpl.content.cloneNode(true);
     const card = clone.querySelector(".painting-card");
     const img = clone.querySelector(".painting-image");
     const titleEl = clone.querySelector(".painting-title");
-    const subEl = clone.querySelector(".painting-sub");
+    const artistEl = clone.querySelector(".painting-artist");
     const priceEl = clone.querySelector(".painting-price");
     const addBtn = clone.querySelector(".add-cart-btn");
     const wishlistBtn = clone.querySelector(".wishlist-btn");
+    const quickViewBtn = clone.querySelector(".quick-view-btn");
     const certBadge = clone.querySelector(".cert-badge");
+    const newBadge = clone.querySelector(".new-badge");
     const verifyBtn = clone.querySelector(".verify-btn");
-    const certSection = clone.querySelector(".cert-section");
 
+    // Add masonry class if needed
+    if (state.viewMode === "masonry") {
+      card.classList.add("masonry-item");
+    }
+
+    // Image
     const imageSrc = buildImageUrl(p.image_url);
     img.src = imageSrc;
-    img.alt = p.title || "Painting";
+    img.alt = p.title || "Artwork";
+    img.addEventListener("load", () => img.classList.add("loaded"));
 
+    // Title & Artist
     titleEl.textContent = p.title || "Untitled";
 
-    const artistPart = p.artist_name ? p.artist_name : "";
-    const catName = categoryMap.get(p.category_id) || "";
-    const subtitle = [artistPart, catName].filter(Boolean).join(" • ");
-    subEl.textContent = subtitle || "Original artwork";
+    // Price
+    priceEl.textContent = formatPrice(p.price);
 
-    priceEl.textContent = `Ksh ${Number(p.price).toLocaleString()}`;
-
-    // Certificate Badge - show if painting has IPFS CID
-    if (certBadge && p.ipfs_cid) {
+    // Certificate badge
+    if (p.ipfs_cid && certBadge) {
       certBadge.classList.remove("hidden");
     }
 
-    // Verify Button - show if painting has certificate
-    if (verifyBtn && p.ipfs_cid) {
+    // New badge (show for items created in last 7 days)
+    const isNew = p.created_at && isWithinDays(p.created_at, 7);
+    if (isNew && newBadge) {
+      newBadge.classList.remove("hidden");
+    }
+
+    // Verify button
+    if (p.ipfs_cid && verifyBtn) {
       verifyBtn.classList.remove("hidden");
       verifyBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        e.preventDefault();
-        // Navigate to verify page
         window.location.href = `./verify.html?painting_id=${p.id}`;
       });
     }
 
-    // Certificate section at bottom of card
-    if (certSection && p.ipfs_cid) {
-      certSection.classList.remove("hidden");
-      certSection.innerHTML = `
-        <div class="px-3 py-2 bg-green-50 border-t border-green-100">
-          <a 
-            href="./verify.html?painting_id=${p.id}" 
-            class="flex items-center justify-between text-xs text-green-700 hover:text-green-800"
-            onclick="event.stopPropagation()"
-          >
-            <span class="flex items-center gap-1">
-              <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-              </svg>
-              Hakika ya Kienyeji
-            </span>
-            <span class="underline">Verify →</span>
-          </a>
-        </div>
-      `;
-    }
+    // Wishlist state
+    const isWishlisted = state.wishlist.has(p.id);
+    updateWishlistButtonUI(wishlistBtn, isWishlisted);
 
-    // Card click = open modal (unless click on buttons/links)
+    // Event listeners
     card.addEventListener("click", (e) => {
-      if (
-        e.target.closest(".wishlist-btn") ||
-        e.target.closest(".add-cart-btn") ||
-        e.target.closest(".verify-btn") ||
-        e.target.closest("a")
-      ) {
-        return;
-      }
+      if (e.target.closest("button") || e.target.closest("a")) return;
       openPaintingModal(p);
     });
 
-    // Add-to-cart
-    if (addBtn) {
-      addBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        handleAddToCart(p);
-      });
-    }
+    quickViewBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openPaintingModal(p);
+    });
 
-    // Wishlist
-    if (wishlistBtn) {
-      const isWishlisted = state.wishlist?.has?.(p.id);
-      updateWishlistButtonUI(wishlistBtn, !!isWishlisted);
+    addBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleAddToCart(p);
+    });
 
-      wishlistBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        handleToggleWishlist(p, wishlistBtn);
-      });
-    }
+    wishlistBtn?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleToggleWishlist(p, wishlistBtn);
+    });
+
+    // Staggered animation
+    card.style.animationDelay = `${index * 50}ms`;
+    card.classList.add("animate-fade-in");
 
     container.appendChild(clone);
   });
+
+  // Show load more if there are many paintings
+  if (paintings.length >= 12) {
+    els.loadMoreContainer?.classList.remove("hidden");
+  } else {
+    els.loadMoreContainer?.classList.add("hidden");
+  }
 }
 
-/* ===== Cart handlers ===== */
+/* ========== View Mode ========== */
+function setViewMode(mode) {
+  state.viewMode = mode;
+  
+  // Update button states
+  if (mode === "grid") {
+    els.viewGrid?.classList.add("bg-gallery-900", "text-white");
+    els.viewGrid?.classList.remove("hover:bg-gallery-100");
+    els.viewMasonry?.classList.remove("bg-gallery-900", "text-white");
+    els.viewMasonry?.classList.add("hover:bg-gallery-100");
+  } else {
+    els.viewMasonry?.classList.add("bg-gallery-900", "text-white");
+    els.viewMasonry?.classList.remove("hover:bg-gallery-100");
+    els.viewGrid?.classList.remove("bg-gallery-900", "text-white");
+    els.viewGrid?.classList.add("hover:bg-gallery-100");
+  }
+  
+  renderPaintings(getSortedPaintings(getFilteredPaintings()));
+}
 
-async function handleAddToCart(painting, qtyOverride) {
+/* ========== Cart Handlers ========== */
+async function handleAddToCart(painting, qtyOverride = 1) {
   if (!state.currentUser || !state.authToken) {
-    window.location.href = "./login.html";
+    showToast("Please sign in to add items to cart", "info");
+    setTimeout(() => {
+      window.location.href = "./login.html";
+    }, 1500);
     return;
   }
 
-  const qty = typeof qtyOverride === "number" && qtyOverride > 0 ? qtyOverride : 1;
-
   try {
-    await addCartItem(state.currentUser.id, painting.id, qty, state.authToken);
-    await syncCartFromServer();
-    alert(`"${painting.title}" added to cart.`);
+    await addCartItem(state.currentUser.id, painting.id, qtyOverride, state.authToken);
+    state.cartCount += qtyOverride;
+    updateCartCountUI();
+    showToast(`"${painting.title}" added to cart`, "success");
   } catch (err) {
     console.error(err);
-    const msg =
-      (err.data && (err.data.message || err.data.error)) ||
-      err.message ||
-      "Failed to add to cart.";
-    alert(msg);
+    const msg = err.data?.message || err.data?.error || err.message || "Failed to add to cart";
+    showToast(msg, "error");
   }
 }
 
-/* ===== Wishlist handlers ===== */
-
+/* ========== Wishlist Handlers ========== */
 async function handleToggleWishlist(painting, btn) {
   if (!state.currentUser || !state.authToken) {
-    window.location.href = "./login.html";
+    showToast("Please sign in to save artworks", "info");
+    setTimeout(() => {
+      window.location.href = "./login.html";
+    }, 1500);
     return;
   }
 
   const isOn = state.wishlist.has(painting.id);
 
+  // Optimistic update
+  if (isOn) {
+    state.wishlist.delete(painting.id);
+  } else {
+    state.wishlist.add(painting.id);
+  }
+  updateWishlistButtonUI(btn, !isOn);
+  updateWishlistCountUI();
+
   try {
     if (isOn) {
       await removeWishlistItem(state.currentUser.id, painting.id, state.authToken);
-      state.wishlist.delete(painting.id);
-      updateWishlistButtonUI(btn, false);
+      showToast("Removed from saved artworks", "success");
     } else {
       await addWishlistItem(state.currentUser.id, painting.id, state.authToken);
-      state.wishlist.add(painting.id);
-      updateWishlistButtonUI(btn, true);
+      showToast("Added to saved artworks", "success");
     }
   } catch (err) {
-    console.error(err);
-    const msg =
-      (err.data && (err.data.message || err.data.error)) ||
-      err.message ||
-      "Failed to update wishlist.";
-    alert(msg);
+    // Revert on error
+    if (isOn) {
+      state.wishlist.add(painting.id);
+    } else {
+      state.wishlist.delete(painting.id);
+    }
+    updateWishlistButtonUI(btn, isOn);
+    updateWishlistCountUI();
+    
+    const msg = err.data?.message || err.message || "Failed to update wishlist";
+    showToast(msg, "error");
   }
 }
 
 function updateWishlistButtonUI(btn, isOn) {
   if (!btn) return;
+  
+  const emptyIcon = btn.querySelector(".wishlist-icon-empty");
+  const filledIcon = btn.querySelector(".wishlist-icon-filled");
+  
   if (isOn) {
-    btn.textContent = "♥";
-    btn.classList.remove("text-gray-400");
+    btn.classList.remove("text-gallery-400");
     btn.classList.add("text-red-500");
+    emptyIcon?.classList.add("hidden");
+    filledIcon?.classList.remove("hidden");
   } else {
-    btn.textContent = "♡";
+    btn.classList.add("text-gallery-400");
     btn.classList.remove("text-red-500");
-    btn.classList.add("text-gray-400");
+    emptyIcon?.classList.remove("hidden");
+    filledIcon?.classList.add("hidden");
   }
 }
 
-/* ===== Painting Modal logic ===== */
-
-function openPaintingModal(p) {
+/* ========== Painting Modal ========== */
+async function openPaintingModal(p) {
   state.currentPainting = p;
   if (!els.modal) return;
 
+  const categoryMap = new Map(state.categories.map((c) => [c.id, c.name]));
+
+  // Populate modal
   if (els.modalImage) {
     els.modalImage.src = buildImageUrl(p.image_url);
+    els.modalImage.alt = p.title || "Artwork";
   }
-  if (els.modalTitle) {
-    els.modalTitle.textContent = p.title || "Untitled";
-  }
-  if (els.modalArtist) {
-    els.modalArtist.textContent = p.artist_name ? `By ${p.artist_name}` : "Original artwork";
-  }
-  if (els.modalDesc) {
-    els.modalDesc.textContent = p.description || p.short_desc || "A beautiful original artwork.";
-  }
-  if (els.modalPrice) {
-    els.modalPrice.textContent = `Ksh ${Number(p.price).toLocaleString()}`;
+  
+  if (els.modalTitle) els.modalTitle.textContent = p.title || "Untitled";
+  
+  if (els.modalDesc) els.modalDesc.textContent = p.description || "A beautiful original artwork by a talented artist.";
+  if (els.modalPrice) els.modalPrice.textContent = formatPrice(p.price);
+  if (els.modalCategory) els.modalCategory.textContent = categoryMap.get(p.category_id) || "Artwork";
+  
+  // Details
+  if (els.modalDimensions) els.modalDimensions.textContent = p.dimensions || "—";
+  if (els.modalMedium) els.modalMedium.textContent = p.medium || p.materials || "—";
+  if (els.modalYear) els.modalYear.textContent = p.year || new Date(p.created_at).getFullYear() || "—";
+  if (els.modalStyle) els.modalStyle.textContent = p.style || categoryMap.get(p.category_id) || "—";
+
+  // Certificate badge
+  if (els.modalCertBadge) {
+    els.modalCertBadge.classList.toggle("hidden", !p.ipfs_cid);
   }
 
-  if (els.modalWishlistBtn) {
-    const isWishlisted = state.wishlist?.has?.(p.id);
-    updateWishlistButtonUI(els.modalWishlistBtn, !!isWishlisted);
-  }
-
-  // Render certificate info in modal
+  // Certificate section
   renderModalCertificateInfo(p);
+
+  // Wishlist state
+  if (els.modalWishlistBtn) {
+    const isWishlisted = state.wishlist.has(p.id);
+    if (isWishlisted) {
+      els.modalWishlistBtn.classList.add("text-red-500", "border-red-200");
+      els.modalWishlistBtn.classList.remove("text-gallery-400");
+    } else {
+      els.modalWishlistBtn.classList.remove("text-red-500", "border-red-200");
+      els.modalWishlistBtn.classList.add("text-gallery-400");
+    }
+  }
 
   // Reset quantity
   const qtyInput = document.getElementById("qty");
   if (qtyInput) qtyInput.value = 1;
 
+  // Show/hide review form based on login status
+  updateReviewFormVisibility();
+  
+  // Reset review form
+  resetReviewForm();
+
+  // Load reviews for this painting
+  await loadPaintingReviews(p.id);
+
+  // Show modal
   els.modal.classList.remove("hidden");
-  els.modal.classList.add("flex");
   document.body.style.overflow = "hidden";
 }
 
@@ -438,54 +649,38 @@ function renderModalCertificateInfo(painting) {
   if (!els.modalCertificate) return;
 
   if (painting.ipfs_cid) {
-    // Has certificate - show verification link
     els.modalCertificate.innerHTML = `
-      <div class="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+      <div class="bg-green-50 border border-green-200 rounded-xl p-4">
         <div class="flex items-start gap-3">
-          <div class="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+          <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
             <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
             </svg>
           </div>
           <div class="flex-1">
             <h4 class="font-semibold text-green-800 text-sm">Hakika ya Kienyeji ✅</h4>
-            <p class="text-xs text-green-700 mt-1">
-              This artwork has a blockchain-verified certificate of authenticity.
-            </p>
-            <div class="mt-3 flex flex-wrap gap-2">
-              <a 
-                href="./verify.html?painting_id=${painting.id}"
-                class="inline-flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition"
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
-                View Certificate
-              </a>
-              <button 
-                type="button"
-                onclick="window.open('./verify.html?painting_id=${painting.id}', '_blank')"
-                class="inline-flex items-center gap-1 px-3 py-1.5 bg-white border border-green-300 text-green-700 text-xs rounded-lg hover:bg-green-50 transition"
-              >
-                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
-                </svg>
-                Open in New Tab
-              </button>
-            </div>
+            <p class="text-xs text-green-700 mt-1 mb-3">Blockchain-verified certificate of authenticity</p>
+            <a 
+              href="./verify.html?painting_id=${painting.id}"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+              View Certificate
+            </a>
           </div>
         </div>
       </div>
     `;
   } else {
-    // No certificate
     els.modalCertificate.innerHTML = `
-      <div class="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-        <div class="flex items-center gap-2 text-gray-500">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+      <div class="bg-gallery-50 border border-gallery-200 rounded-xl p-4">
+        <div class="flex items-center gap-2 text-gallery-500">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
           </svg>
-          <span class="text-xs">Certificate pending verification</span>
+          <span class="text-sm">Certificate pending verification</span>
         </div>
       </div>
     `;
@@ -495,244 +690,562 @@ function renderModalCertificateInfo(painting) {
 function closePaintingModal() {
   if (!els.modal) return;
   els.modal.classList.add("hidden");
-  els.modal.classList.remove("flex");
   document.body.style.overflow = "";
   state.currentPainting = null;
+  state.currentReviews = [];
+  state.editingReviewId = null;
+  resetReviewForm();
 }
 
 function initModalEvents() {
-  if (els.modalClose) {
-    els.modalClose.addEventListener("click", closePaintingModal);
-  }
+  els.modalClose?.addEventListener("click", closePaintingModal);
 
-  if (els.modal) {
-    els.modal.addEventListener("click", (e) => {
-      if (e.target === els.modal) {
-        closePaintingModal();
-      }
-    });
-  }
+  els.modal?.addEventListener("click", (e) => {
+    if (e.target === els.modal) closePaintingModal();
+  });
 
-  if (els.modalWishlistBtn) {
-    els.modalWishlistBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      e.preventDefault();
-      if (!state.currentPainting) return;
-      handleToggleWishlist(state.currentPainting, els.modalWishlistBtn);
-    });
-  }
+  els.modalWishlistBtn?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!state.currentPainting) return;
+    handleToggleWishlist(state.currentPainting, els.modalWishlistBtn);
+  });
 
   // Add to cart from modal
-  const addToCartModal = document.getElementById("add-to-cart-modal");
-  if (addToCartModal) {
-    addToCartModal.addEventListener("click", () => {
-      if (!state.currentPainting) return;
-      const qtyInput = document.getElementById("qty");
-      const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
-      handleAddToCart(state.currentPainting, qty);
-    });
-  }
+  document.getElementById("add-to-cart-modal")?.addEventListener("click", () => {
+    if (!state.currentPainting) return;
+    const qtyInput = document.getElementById("qty");
+    const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+    handleAddToCart(state.currentPainting, qty);
+  });
 
-  // Buy now button
-  const buyNowBtn = document.getElementById("buy-now");
-  if (buyNowBtn) {
-    buyNowBtn.addEventListener("click", async () => {
-      if (!state.currentPainting) return;
-      const qtyInput = document.getElementById("qty");
-      const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
-      await handleAddToCart(state.currentPainting, qty);
-      window.location.href = "./cart.html";
-    });
-  }
+  // Buy now
+  document.getElementById("buy-now")?.addEventListener("click", async () => {
+    if (!state.currentPainting) return;
+    const qtyInput = document.getElementById("qty");
+    const qty = qtyInput ? parseInt(qtyInput.value, 10) : 1;
+    await handleAddToCart(state.currentPainting, qty);
+    window.location.href = "./cart.html";
+  });
 
   // Quantity controls
   const qtyDecr = document.getElementById("qty-decr");
   const qtyIncr = document.getElementById("qty-incr");
   const qtyInput = document.getElementById("qty");
 
-  if (qtyDecr && qtyInput) {
-    qtyDecr.addEventListener("click", () => {
-      const current = parseInt(qtyInput.value, 10) || 1;
-      qtyInput.value = Math.max(1, current - 1);
-    });
-  }
+  qtyDecr?.addEventListener("click", () => {
+    const current = parseInt(qtyInput.value, 10) || 1;
+    qtyInput.value = Math.max(1, current - 1);
+  });
 
-  if (qtyIncr && qtyInput) {
-    qtyIncr.addEventListener("click", () => {
-      const current = parseInt(qtyInput.value, 10) || 1;
-      qtyInput.value = current + 1;
-    });
-  }
+  qtyIncr?.addEventListener("click", () => {
+    const current = parseInt(qtyInput.value, 10) || 1;
+    qtyInput.value = current + 1;
+  });
+}
 
-  // Escape key handler
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      if (els.verifyModal && !els.verifyModal.classList.contains("hidden")) {
-        closeVerificationModal();
-      } else if (els.modal && !els.modal.classList.contains("hidden")) {
-        closePaintingModal();
-      }
+/* ========== Reviews ========== */
+function initReviewEvents() {
+  // Star rating click handlers
+  const starBtns = document.querySelectorAll(".star-btn");
+  starBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const rating = parseInt(btn.dataset.rating, 10);
+      setStarRating(rating);
+    });
+    
+    // Hover effects
+    btn.addEventListener("mouseenter", () => {
+      const rating = parseInt(btn.dataset.rating, 10);
+      highlightStars(rating);
+    });
+  });
+  
+  // Reset stars on mouse leave
+  els.starRating?.addEventListener("mouseleave", () => {
+    highlightStars(state.selectedRating);
+  });
+  
+  // Submit review
+  els.submitReview?.addEventListener("click", handleSubmitReview);
+}
+
+function setStarRating(rating) {
+  state.selectedRating = rating;
+  if (els.reviewRating) {
+    els.reviewRating.value = rating;
+  }
+  highlightStars(rating);
+}
+
+function highlightStars(rating) {
+  const starBtns = document.querySelectorAll(".star-btn");
+  starBtns.forEach((btn) => {
+    const btnRating = parseInt(btn.dataset.rating, 10);
+    if (btnRating <= rating) {
+      btn.classList.remove("text-gallery-300");
+      btn.classList.add("text-yellow-400");
+    } else {
+      btn.classList.add("text-gallery-300");
+      btn.classList.remove("text-yellow-400");
     }
   });
 }
 
-/* ===== Verification Modal (Quick Verify without leaving page) ===== */
-
-function initVerificationModalEvents() {
-  if (els.verifyClose) {
-    els.verifyClose.addEventListener("click", closeVerificationModal);
-  }
-
-  if (els.verifyModal) {
-    els.verifyModal.addEventListener("click", (e) => {
-      if (e.target === els.verifyModal) {
-        closeVerificationModal();
-      }
-    });
+function updateReviewFormVisibility() {
+  if (!els.reviewLoginPrompt || !els.reviewForm) return;
+  
+  if (state.currentUser && state.authToken) {
+    els.reviewLoginPrompt.classList.add("hidden");
+    els.reviewForm.classList.remove("hidden");
+  } else {
+    els.reviewLoginPrompt.classList.remove("hidden");
+    els.reviewForm.classList.add("hidden");
   }
 }
 
-async function openVerificationModal(paintingId) {
-  if (!els.verifyModal || !els.verifyContent) return;
+function resetReviewForm() {
+  state.selectedRating = 0;
+  state.editingReviewId = null;
+  
+  if (els.reviewRating) els.reviewRating.value = "0";
+  if (els.reviewComment) els.reviewComment.value = "";
+  if (els.submitReview) {
+    els.submitReview.innerHTML = `
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+      </svg>
+      Submit Review
+    `;
+  }
+  
+  highlightStars(0);
+}
 
-  // Show modal with loading state
-  els.verifyModal.classList.remove("hidden");
-  els.verifyModal.classList.add("flex");
-  document.body.style.overflow = "hidden";
-
-  els.verifyContent.innerHTML = `
-    <div class="flex flex-col items-center justify-center py-12">
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-      <p class="mt-4 text-gray-600">Verifying certificate on IPFS...</p>
-      <p class="text-xs text-gray-400 mt-2">Fetching from blockchain</p>
-    </div>
-  `;
-
+async function loadPaintingReviews(paintingId) {
   try {
-    const result = await verifyPaintingCertificate(paintingId);
-    renderVerificationResult(result, paintingId);
+    const reviews = await getPaintingReviews(paintingId);
+    state.currentReviews = reviews || [];
+    renderReviewsSummary();
+    renderReviewsList();
   } catch (err) {
-    console.error("Verification failed:", err);
-    renderVerificationError(
-      err.data?.message || err.message || "Verification failed. Please try again."
-    );
+    console.error("Failed to load reviews:", err);
+    state.currentReviews = [];
+    renderReviewsSummary();
+    renderReviewsList();
   }
 }
 
-function renderVerificationResult(result, paintingId) {
-  if (!els.verifyContent) return;
-
-  const isValid = result.valid;
-  const cert = result.certificate || {};
-
-  els.verifyContent.innerHTML = `
-    <div class="space-y-6">
-      <!-- Status Header -->
-      <div class="text-center ${isValid ? "bg-green-50" : "bg-red-50"} p-6 rounded-xl">
-        <div class="mx-auto w-16 h-16 ${isValid ? "bg-green-100" : "bg-red-100"} rounded-full flex items-center justify-center mb-4">
-          ${isValid
-            ? `<svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-              </svg>`
-            : `<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-              </svg>`
-          }
+function renderReviewsSummary() {
+  if (!els.reviewsSummary || !els.reviewsCount) return;
+  
+  const reviews = state.currentReviews;
+  const count = reviews.length;
+  
+  els.reviewsCount.textContent = `${count} review${count !== 1 ? 's' : ''}`;
+  
+  if (count === 0) {
+    els.reviewsSummary.innerHTML = `
+      <div class="flex items-center gap-2 text-gallery-400">
+        <div class="flex gap-0.5">
+          ${renderStarsHTML(0)}
         </div>
-        <h3 class="text-xl font-bold ${isValid ? "text-green-800" : "text-red-800"}">
-          ${isValid ? "✅ Authentic & Verified" : "❌ Verification Failed"}
-        </h3>
-        <p class="text-sm ${isValid ? "text-green-600" : "text-red-600"} mt-2">
-          ${result.message || (isValid ? "This artwork is authentic." : "Certificate validation failed.")}
-        </p>
+        <span class="text-sm">No reviews yet</span>
       </div>
-
-      <!-- Certificate Summary -->
-      <div class="grid grid-cols-2 gap-3 text-sm">
-        <div class="bg-gray-50 p-3 rounded-lg">
-          <span class="text-gray-500 text-xs">Title</span>
-          <p class="font-medium">${result.title || cert.title || "N/A"}</p>
-        </div>
-        <div class="bg-gray-50 p-3 rounded-lg">
-          <span class="text-gray-500 text-xs">Artist</span>
-          <p class="font-medium">${result.artist || cert.artist_name || "N/A"}</p>
-        </div>
-        <div class="bg-gray-50 p-3 rounded-lg">
-          <span class="text-gray-500 text-xs">Materials</span>
-          <p class="font-medium">${result.materials || cert.materials || "N/A"}</p>
-        </div>
-        <div class="bg-gray-50 p-3 rounded-lg">
-          <span class="text-gray-500 text-xs">Origin</span>
-          <p class="font-medium">${result.location || cert.location || "Kenya"}</p>
+    `;
+    return;
+  }
+  
+  const avgRating = calculateAverageRating(reviews);
+  
+  els.reviewsSummary.innerHTML = `
+    <div class="flex items-center gap-4">
+      <div class="text-center">
+        <div class="text-3xl font-bold text-gallery-900">${avgRating}</div>
+        <div class="flex justify-center mt-1">
+          ${renderStarsHTML(parseFloat(avgRating))}
         </div>
       </div>
-
-      <!-- Actions -->
-      <div class="flex flex-col sm:flex-row gap-3 pt-2">
-        <a 
-          href="./verify.html?painting_id=${paintingId}"
-          class="flex-1 text-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
-        >
-          View Full Certificate
-        </a>
-        <button 
-          onclick="window.closeVerificationModal()"
-          class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition text-sm"
-        >
-          Close
-        </button>
+      <div class="flex-1 space-y-1">
+        ${renderRatingBarsHTML(reviews)}
       </div>
     </div>
   `;
 }
 
-function renderVerificationError(message) {
-  if (!els.verifyContent) return;
-
-  els.verifyContent.innerHTML = `
-    <div class="text-center py-8">
-      <div class="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-        <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+function renderReviewsList() {
+  if (!els.reviewsList) return;
+  
+  const reviews = state.currentReviews;
+  
+  if (reviews.length === 0) {
+    els.reviewsList.innerHTML = `
+      <div class="text-center py-6 text-gallery-500">
+        <svg class="w-10 h-10 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
         </svg>
+        <p class="text-sm">Be the first to review this artwork!</p>
       </div>
-      <h3 class="text-xl font-bold text-red-800 mb-2">Verification Failed</h3>
-      <p class="text-gray-600 mb-6">${message}</p>
-      <button 
-        onclick="window.closeVerificationModal()"
-        class="px-6 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
-      >
-        Close
-      </button>
+    `;
+    return;
+  }
+  
+  els.reviewsList.innerHTML = reviews.map((review) => renderReviewCardHTML(review)).join("");
+  
+  // Add event listeners for edit/delete buttons
+  reviews.forEach((review) => {
+    const editBtn = document.getElementById(`edit-review-${review.id}`);
+    const deleteBtn = document.getElementById(`delete-review-${review.id}`);
+    
+    editBtn?.addEventListener("click", () => handleEditReview(review));
+    deleteBtn?.addEventListener("click", () => handleDeleteReview(review.id));
+  });
+}
+
+function renderStarsHTML(rating, size = "w-4 h-4") {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  
+  let html = "";
+  
+  // Full stars
+  for (let i = 0; i < fullStars; i++) {
+    html += `<svg class="${size} text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>`;
+  }
+  
+  // Half star
+  if (hasHalfStar) {
+    html += `
+      <svg class="${size} text-yellow-400" viewBox="0 0 20 20">
+        <defs>
+          <linearGradient id="half-star-${Math.random()}">
+            <stop offset="50%" stop-color="currentColor"/>
+            <stop offset="50%" stop-color="#d1d5db"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#half-star-${Math.random()})" d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+      </svg>
+    `;
+  }
+  
+  // Empty stars
+  for (let i = 0; i < emptyStars; i++) {
+    html += `<svg class="${size} text-gallery-300 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>`;
+  }
+  
+  return `<div class="flex gap-0.5">${html}</div>`;
+}
+
+function renderRatingBarsHTML(reviews) {
+  const distribution = [5, 4, 3, 2, 1].map((rating) => {
+    const count = reviews.filter((r) => r.rating === rating).length;
+    const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+    return { rating, count, percentage };
+  });
+  
+  return distribution.map(({ rating, count, percentage }) => `
+    <div class="flex items-center gap-2 text-xs">
+      <span class="w-3 text-gallery-600">${rating}</span>
+      <svg class="w-3 h-3 text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>
+      <div class="flex-1 bg-gallery-200 rounded-full h-1.5">
+        <div class="bg-yellow-400 h-1.5 rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+      </div>
+      <span class="w-6 text-right text-gallery-500">${count}</span>
+    </div>
+  `).join("");
+}
+
+function renderReviewCardHTML(review) {
+  const isCurrentUser = state.currentUser && review.user_id === state.currentUser.id;
+  const timeAgo = getTimeAgo(new Date(review.created_at || Date.now()));
+  const initial = review.username ? review.username[0].toUpperCase() : "U";
+  
+  return `
+    <div class="border border-gallery-200 rounded-lg p-3 hover:border-gallery-300 transition">
+      <div class="flex items-start justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-gallery-600 flex items-center justify-center text-white text-sm font-medium">
+            ${initial}
+          </div>
+          <div>
+            <div class="text-sm font-medium text-gallery-900">${escapeHtml(review.username || "Anonymous")}</div>
+            <div class="flex items-center gap-2">
+              ${renderStarsHTML(review.rating, "w-3 h-3")}
+              <span class="text-xs text-gallery-400">${timeAgo}</span>
+            </div>
+          </div>
+        </div>
+        ${isCurrentUser ? `
+          <div class="flex gap-1">
+            <button id="edit-review-${review.id}" class="p-1 text-gallery-400 hover:text-gallery-600 transition" title="Edit">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+            </button>
+            <button id="delete-review-${review.id}" class="p-1 text-red-400 hover:text-red-600 transition" title="Delete">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        ` : ""}
+      </div>
+      <p class="text-sm text-gallery-600 leading-relaxed">${escapeHtml(review.comment)}</p>
     </div>
   `;
+}
+
+function calculateAverageRating(reviews) {
+  if (!reviews || reviews.length === 0) return "0.0";
+  const sum = reviews.reduce((acc, review) => acc + (review.rating || 0), 0);
+  return (sum / reviews.length).toFixed(1);
+}
+
+async function handleSubmitReview() {
+  if (!state.currentUser || !state.authToken) {
+    showToast("Please sign in to leave a review", "info");
+    return;
+  }
+  
+  if (!state.currentPainting) return;
+  
+  const rating = state.selectedRating;
+  const comment = els.reviewComment?.value?.trim() || "";
+  
+  if (rating < 1 || rating > 5) {
+    showToast("Please select a rating (1-5 stars)", "error");
+    return;
+  }
+  
+  if (!comment || comment.length < 10) {
+    showToast("Please write a review (at least 10 characters)", "error");
+    return;
+  }
+  
+  // Disable button while submitting
+  if (els.submitReview) {
+    els.submitReview.disabled = true;
+    els.submitReview.innerHTML = `
+      <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Submitting...
+    `;
+  }
+  
+  try {
+    if (state.editingReviewId) {
+      // Update existing review
+      await updateReview(state.editingReviewId, { rating, comment }, state.authToken);
+      showToast("Review updated successfully!", "success");
+    } else {
+      // Create new review
+      const reviewData = {
+        user_id: state.currentUser.id,
+        painting_id: state.currentPainting.id,
+        rating,
+        comment,
+      };
+      await createReview(reviewData, state.authToken);
+      showToast("Review submitted successfully!", "success");
+    }
+    
+    // Reset form and reload reviews
+    resetReviewForm();
+    await loadPaintingReviews(state.currentPainting.id);
+    
+  } catch (err) {
+    console.error(err);
+    const msg = err.data?.message || "Failed to submit review";
+    showToast(msg, "error");
+  } finally {
+    if (els.submitReview) {
+      els.submitReview.disabled = false;
+      els.submitReview.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+        Submit Review
+      `;
+    }
+  }
+}
+
+function handleEditReview(review) {
+  state.editingReviewId = review.id;
+  state.selectedRating = review.rating;
+  
+  if (els.reviewRating) els.reviewRating.value = review.rating;
+  if (els.reviewComment) els.reviewComment.value = review.comment;
+  
+  highlightStars(review.rating);
+  
+  if (els.submitReview) {
+    els.submitReview.innerHTML = `
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+      </svg>
+      Update Review
+    `;
+  }
+  
+  // Scroll to form
+  els.reviewFormContainer?.scrollIntoView({ behavior: "smooth", block: "center" });
+  els.reviewComment?.focus();
+  
+  showToast("Editing your review", "info");
+}
+
+async function handleDeleteReview(reviewId) {
+  if (!confirm("Are you sure you want to delete this review?")) return;
+  
+  try {
+    await deleteReview(reviewId, state.authToken);
+    showToast("Review deleted successfully", "success");
+    
+    // Reload reviews
+    if (state.currentPainting) {
+      await loadPaintingReviews(state.currentPainting.id);
+    }
+  } catch (err) {
+    console.error(err);
+    const msg = err.data?.message || "Failed to delete review";
+    showToast(msg, "error");
+  }
+}
+
+/* ========== Verification Modal ========== */
+function initVerificationModalEvents() {
+  els.verifyClose?.addEventListener("click", closeVerificationModal);
+
+  els.verifyModal?.addEventListener("click", (e) => {
+    if (e.target === els.verifyModal) closeVerificationModal();
+  });
 }
 
 function closeVerificationModal() {
   if (!els.verifyModal) return;
   els.verifyModal.classList.add("hidden");
-  els.verifyModal.classList.remove("flex");
   document.body.style.overflow = "";
 }
 
-/* ===== Helpers ===== */
+/* ========== Search ========== */
+function openSearch() {
+  els.searchOverlay?.classList.remove("hidden");
+  els.searchOverlay?.classList.add("flex");
+  els.searchInput?.focus();
+  document.body.style.overflow = "hidden";
+}
 
+function closeSearch() {
+  els.searchOverlay?.classList.add("hidden");
+  els.searchOverlay?.classList.remove("flex");
+  document.body.style.overflow = "";
+}
+
+/* ========== Mobile Menu ========== */
+function toggleMobileMenu() {
+  els.mobileMenu?.classList.toggle("hidden");
+}
+
+/* ========== User Dropdown ========== */
+function toggleUserDropdown() {
+  els.userDropdown?.classList.toggle("hidden");
+}
+
+/* ========== Toast Notifications ========== */
+function showToast(message, type = "info") {
+  if (!els.toastContainer) return;
+
+  const toast = document.createElement("div");
+  const bgColor = {
+    success: "bg-green-600",
+    error: "bg-red-600",
+    info: "bg-gallery-900",
+  }[type] || "bg-gallery-900";
+
+  const icon = {
+    success: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>`,
+    error: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`,
+    info: `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+  }[type];
+
+  toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-up max-w-xs`;
+  toast.innerHTML = `
+    ${icon}
+    <span class="text-sm font-medium">${message}</span>
+  `;
+
+  els.toastContainer.appendChild(toast);
+
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(10px)";
+    toast.style.transition = "all 0.3s ease";
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+/* ========== Helpers ========== */
 function buildImageUrl(imageUrl) {
-  if (!imageUrl) {
-    return "https://via.placeholder.com/300x200?text=No+Image";
-  }
+  if (!imageUrl) return "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=400&h=500&fit=crop";
   if (imageUrl.startsWith("http")) return imageUrl;
   return API_BASE_URL + imageUrl;
 }
 
-// Make functions available globally for onclick handlers
-window.closeVerificationModal = closeVerificationModal;
-window.openVerificationModal = openVerificationModal;
+function formatPrice(price) {
+  return `Ksh ${Number(price || 0).toLocaleString()}`;
+}
 
-window.copyCID = function(cid) {
-  navigator.clipboard.writeText(cid).then(() => {
-    alert("✅ Certificate ID copied!");
-  }).catch(err => {
-    console.error("Failed to copy:", err);
-  });
+function isWithinDays(dateStr, days) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now - date;
+  return diff < days * 24 * 60 * 60 * 1000;
+}
+
+function getTimeAgo(date) {
+  const seconds = Math.floor((new Date() - date) / 1000);
+  
+  const intervals = {
+    year: 31536000,
+    month: 2592000,
+    week: 604800,
+    day: 86400,
+    hour: 3600,
+    minute: 60,
+  };
+  
+  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
+    const interval = Math.floor(seconds / secondsInUnit);
+    if (interval >= 1) {
+      return `${interval} ${unit}${interval !== 1 ? "s" : ""} ago`;
+    }
+  }
+  
+  return "just now";
+}
+
+function escapeHtml(text) {
+  if (!text) return "";
+  const div = document.createElement("div");
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Global functions for onclick handlers
+window.closeVerificationModal = closeVerificationModal;
+window.closePaintingModal = closePaintingModal;
+
+window.copyCID = function (cid) {
+  navigator.clipboard
+    .writeText(cid)
+    .then(() => {
+      showToast("Certificate ID copied!", "success");
+    })
+    .catch(() => {
+      showToast("Failed to copy", "error");
+    });
 };

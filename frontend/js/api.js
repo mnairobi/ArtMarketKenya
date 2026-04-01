@@ -271,16 +271,65 @@ export function getOrderDetails(orderId, token) {
 // ──────────────────────────────────────────────
 // REVIEWS
 // ──────────────────────────────────────────────
-export function getReviews() {
-  return apiRequest("/reviews");
+
+/**
+ * Get reviews for a specific painting
+ * GET /reviews?painting_id=X
+ */
+export function getPaintingReviews(paintingId) {
+  return apiRequest(`/reviews?painting_id=${paintingId}`);
 }
 
+/**
+ * Get reviews by a specific user
+ * GET /reviews?user_id=X
+ */
+export function getUserReviews(userId, token) {
+  return apiRequest(`/reviews?user_id=${userId}`, { token });
+}
+
+/**
+ * Create a new review (buyers only)
+ * POST /reviews
+ */
 export function createReview(reviewData, token) {
   return apiRequest("/reviews", {
     method: "POST",
     token,
     body: reviewData,
   });
+}
+
+/**
+ * Update an existing review
+ * PUT /reviews/:review_id
+ */
+export function updateReview(reviewId, data, token) {
+  return apiRequest(`/reviews/${reviewId}`, {
+    method: "PUT",
+    token,
+    body: data,
+  });
+}
+
+/**
+ * Delete a review
+ * DELETE /reviews/:review_id
+ */
+export function deleteReview(reviewId, token) {
+  return apiRequest(`/reviews/${reviewId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
+/**
+ * Calculate average rating for a painting
+ */
+export function calculateAverageRating(reviews) {
+  if (!reviews || reviews.length === 0) return 0;
+  const sum = reviews.reduce((acc, review) => acc + (review.rating || 0), 0);
+  return (sum / reviews.length).toFixed(1);
 }
 
 // ──────────────────────────────────────────────
@@ -580,4 +629,27 @@ export function updateTrackingInfo(deliveryId, trackingNumber, carrier, estimate
     token,
     body: data,
   });
+}
+//paystack
+
+// Initiate Paystack payment
+export function initiatePaystackPayment(paymentData, token) {
+  return apiRequest("/payments", {
+    method: "POST",
+    token,
+    body: {
+      ...paymentData,
+      payment_method: "paystack",
+    },
+  });
+}
+
+// Verify Paystack payment
+export function verifyPaystackPayment(reference, token) {
+  return apiRequest(`/payments/paystack/verify/${reference}`, { token });
+}
+
+// Get payment methods
+export function getPaymentMethods() {
+  return apiRequest("/payment-methods");
 }

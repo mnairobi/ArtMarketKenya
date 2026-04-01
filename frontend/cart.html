@@ -2,145 +2,491 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>My Cart | Art Market</title>
+  <title>Shopping Cart — SANAA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Review your selected artworks and proceed to checkout" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'display': ['Playfair Display', 'serif'],
+            'sans': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'gallery': {
+              50: '#fafafa',
+              100: '#f5f5f5',
+              200: '#e5e5e5',
+              300: '#d4d4d4',
+              400: '#a3a3a3',
+              500: '#737373',
+              600: '#525252',
+              700: '#404040',
+              800: '#262626',
+              900: '#171717',
+              950: '#0a0a0a',
+            },
+            'accent': {
+              DEFAULT: '#c9a962',
+              light: '#dfc88a',
+              dark: '#a88b3d',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out',
+            'slide-up': 'slideUp 0.6s ease-out',
+            'slide-in-right': 'slideInRight 0.4s ease-out',
+            'scale-in': 'scaleIn 0.3s ease-out',
+            'shimmer': 'shimmer 2s infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            slideInRight: {
+              '0%': { opacity: '0', transform: 'translateX(20px)' },
+              '100%': { opacity: '1', transform: 'translateX(0)' },
+            },
+            scaleIn: {
+              '0%': { opacity: '0', transform: 'scale(0.95)' },
+              '100%': { opacity: '1', transform: 'scale(1)' },
+            },
+            shimmer: {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f5f5f5;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d4d4d4;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a3a3a3;
+    }
+
+    /* Skeleton shimmer */
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 2s infinite;
+    }
+
+    /* Remove number input arrows */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type="number"] {
+      -moz-appearance: textfield;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gallery-50 text-gallery-900 min-h-screen font-sans antialiased flex flex-col">
 
-<header class="bg-white shadow">
-  <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-    <a href="./index.html" class="text-xl font-bold text-indigo-700">
-      Art<span class="text-gray-900">Market</span>
-    </a>
-
-    <nav class="flex items-center gap-4 text-sm">
-      <a href="./index.html" class="text-gray-600 hover:text-indigo-600">Home</a>
-      <a href="./cart.html" class="text-gray-900 font-semibold">Cart</a>
-
-      <div class="flex items-center gap-2 ml-4">
-        <span class="text-xs text-gray-500">Items:</span>
-        <span
-          id="cart-count"
-          class="inline-flex items-center justify-center px-2 py-1 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700"
-        >
-          0
-        </span>
-      </div>
-    </nav>
+  <!-- Announcement Bar -->
+  <div class="bg-gallery-900 text-white text-center py-2.5 text-sm tracking-wide">
+    <span class="text-accent">✦</span> Free shipping on orders over Ksh 50,000 
+    <span class="mx-2 text-gallery-500">|</span> 
+    <a href="#" class="underline hover:text-accent transition">Secure checkout guaranteed</a>
   </div>
-</header>
 
-  <!-- Main -->
-  <main class="flex-1">
-    <div class="max-w-6xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+  <!-- Header -->
+  <header class="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gallery-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+        
+        <!-- Logo -->
+        <a href="./index.html" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 bg-gallery-900 rounded-full flex items-center justify-center group-hover:bg-accent transition-colors duration-300">
+            <span class="text-white font-display text-lg">S</span>
+          </div>
+          <span class="font-display text-2xl tracking-tight hidden sm:block">
+            SANAA
+          </span>
+        </a>
 
-      <!-- Cart items -->
-      <section class="lg:col-span-2 bg-white rounded-2xl shadow p-4 md:p-6">
-        <h1 class="text-xl font-semibold text-gray-800 mb-4">My Cart</h1>
+        <!-- Breadcrumb (Desktop) -->
+        <nav class="hidden lg:flex items-center gap-2 text-sm">
+          <a href="./index.html" class="text-gallery-500 hover:text-gallery-900 transition">Home</a>
+          <svg class="w-4 h-4 text-gallery-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+          <span class="text-gallery-900 font-medium">Shopping Cart</span>
+        </nav>
 
-        <p
-          id="cart-message"
-          class="text-sm text-gray-500 mb-4 hidden"
-        ></p>
+        <!-- Right Actions -->
+        <div class="flex items-center gap-2 sm:gap-4">
+          <!-- Continue Shopping -->
+          <a href="./index.html" class="hidden sm:flex items-center gap-2 text-sm text-gallery-600 hover:text-gallery-900 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Continue Shopping
+          </a>
 
-        <div id="cart-items-container" class="space-y-4">
-          <!-- JS will inject cart item rows here -->
+          <!-- Cart Icon -->
+          <div class="relative p-2 bg-gallery-100 rounded-full">
+            <svg class="w-5 h-5 text-gallery-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+            <span id="cart-count" class="absolute -top-1 -right-1 w-5 h-5 bg-accent text-white text-[10px] rounded-full flex items-center justify-center font-semibold">0</span>
+          </div>
+
+          <!-- User -->
+          <a href="./login.html" class="p-2 hover:bg-gallery-100 rounded-full transition">
+            <svg class="w-5 h-5 text-gallery-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </a>
         </div>
+      </div>
+    </div>
+  </header>
 
-        <!-- Template for cart item -->
-        <template id="cart-item-template">
-          <div class="flex gap-3 md:gap-4 items-center border rounded-xl p-3 md:p-4 bg-white">
-            <div class="w-20 h-20 md:w-24 md:h-24 bg-gray-100 rounded overflow-hidden flex items-center justify-center flex-shrink-0">
-              <img
-                class="cart-item-image w-full h-full object-cover"
-                alt="Painting"
-              />
+  <!-- Main Content -->
+  <main class="flex-1 py-8 lg:py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8">
+        <h1 class="font-display text-3xl lg:text-4xl text-gallery-900 mb-2">Shopping Cart</h1>
+        <p class="text-gallery-500">Review your selected artworks before checkout</p>
+      </div>
+
+      <!-- Cart Content Grid -->
+      <div class="grid lg:grid-cols-3 gap-8">
+        
+        <!-- Cart Items Section -->
+        <section class="lg:col-span-2 space-y-4">
+          
+          <!-- Cart Status Message -->
+          <div id="cart-message" class="hidden">
+            <!-- Will be populated by JS -->
+          </div>
+
+          <!-- Loading Skeleton -->
+          <div id="cart-loading" class="space-y-4">
+            <div class="bg-white rounded-2xl p-4 animate-pulse">
+              <div class="flex gap-4">
+                <div class="w-24 h-24 bg-gallery-200 rounded-xl"></div>
+                <div class="flex-1 space-y-3">
+                  <div class="h-4 bg-gallery-200 rounded w-3/4"></div>
+                  <div class="h-3 bg-gallery-200 rounded w-1/2"></div>
+                  <div class="h-4 bg-gallery-200 rounded w-1/4"></div>
+                </div>
+              </div>
             </div>
-
-            <div class="flex-1 min-w-0">
-              <h3 class="cart-item-title text-sm md:text-base font-semibold text-gray-800 truncate">
-                Title
-              </h3>
-              <p class="cart-item-price text-xs md:text-sm text-gray-500 mt-0.5">
-                Ksh 0
-              </p>
-              <p class="cart-item-subtotal text-xs md:text-sm text-gray-700 mt-1">
-                Subtotal: Ksh 0
-              </p>
-
-              <div class="mt-2 flex items-center gap-2">
-                <button
-                  class="qty-decr px-2 py-1 border rounded text-xs"
-                >
-                  -
-                </button>
-                <input
-                  type="number"
-                  class="qty-input w-12 text-center border rounded text-xs py-1"
-                  min="1"
-                  value="1"
-                />
-                <button
-                  class="qty-incr px-2 py-1 border rounded text-xs"
-                >
-                  +
-                </button>
-
-                <button
-                  class="remove-item ml-auto text-xs text-red-500 hover:text-red-600"
-                >
-                  Remove
-                </button>
+            <div class="bg-white rounded-2xl p-4 animate-pulse">
+              <div class="flex gap-4">
+                <div class="w-24 h-24 bg-gallery-200 rounded-xl"></div>
+                <div class="flex-1 space-y-3">
+                  <div class="h-4 bg-gallery-200 rounded w-3/4"></div>
+                  <div class="h-3 bg-gallery-200 rounded w-1/2"></div>
+                  <div class="h-4 bg-gallery-200 rounded w-1/4"></div>
+                </div>
               </div>
             </div>
           </div>
-        </template>
+
+          <!-- Cart Items Container -->
+          <div id="cart-items-container" class="space-y-4">
+            <!-- JS will inject cart item cards here -->
+          </div>
+
+          <!-- Empty Cart State -->
+          <div id="empty-cart" class="hidden bg-white rounded-2xl shadow-sm p-12 text-center">
+            <div class="w-20 h-20 bg-gallery-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg class="w-10 h-10 text-gallery-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+              </svg>
+            </div>
+            <h3 class="font-display text-xl text-gallery-900 mb-2">Your cart is empty</h3>
+            <p class="text-gallery-500 mb-6">Looks like you haven't added any artworks yet.</p>
+            <a href="./index.html" class="inline-flex items-center gap-2 px-6 py-3 bg-gallery-900 text-white rounded-full font-medium hover:bg-accent transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+              Explore Artworks
+            </a>
+          </div>
+
+        </section>
+
+        <!-- Order Summary Sidebar -->
+        <!-- Summary Sidebar -->
+<aside class="lg:col-span-1">
+  <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-28">
+    <h2 class="font-display text-xl text-gallery-900 mb-6 pb-4 border-b border-gallery-100">
+      Order Summary
+    </h2>
+
+    <!-- Summary Details -->
+    <div class="space-y-4 mb-6">
+      <div class="flex justify-between text-sm">
+        <span class="text-gallery-600">Subtotal</span>
+        <span id="summary-subtotal" class="font-medium text-gallery-900">Ksh 0.00</span>
+      </div>
+      
+      <p class="text-xs text-gallery-400">
+        Shipping calculated at checkout
+      </p>
+    </div>
+
+    <!-- Total -->
+    <div class="py-4 border-t border-gallery-200 mb-6">
+      <div class="flex justify-between items-center">
+        <span class="font-display text-lg text-gallery-900">Total</span>
+        <span id="summary-total" class="font-display text-2xl text-gallery-900">Ksh 0.00</span>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="space-y-3">
+      <a
+        href="./checkout.html"
+        id="checkout-btn"
+        class="flex items-center justify-center gap-2 w-full bg-gallery-900 text-white py-4 rounded-xl font-medium hover:bg-accent transition-colors group"
+      >
+        Proceed to Checkout
+        <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+        </svg>
+      </a>
+
+      <button
+        id="clear-cart-btn"
+        class="w-full py-3 border border-gallery-200 text-gallery-600 rounded-xl text-sm font-medium hover:bg-gallery-50 hover:border-gallery-300 transition"
+      >
+        Clear cart
+      </button>
+    </div>
+
+    <!-- Trust Badges -->
+    <div class="mt-6 pt-6 border-t border-gallery-100">
+      <div class="flex flex-col gap-3 text-xs text-gallery-500">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+          </svg>
+          Secure Checkout
+        </div>
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          Verified Artworks
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Methods -->
+    <div class="mt-6 pt-4 border-t border-gallery-100">
+      <p class="text-xs text-gallery-500 mb-3 text-center">We accept</p>
+      <div class="flex justify-center items-center gap-2">
+        <div class="px-2 py-1 bg-green-100 rounded text-green-700 text-xs font-semibold">M-Pesa</div>
+        <div class="px-2 py-1 bg-blue-100 rounded text-blue-700 text-xs font-semibold">Visa</div>
+        <div class="px-2 py-1 bg-orange-100 rounded text-orange-700 text-xs font-semibold">Mastercard</div>
+      </div>
+    </div>
+  </div>
+</aside>
+      </div>
+
+      <!-- Recently Viewed / You May Also Like -->
+      <section id="recommendations" class="mt-16 hidden">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="font-display text-2xl text-gallery-900">You May Also Like</h2>
+            <p class="text-gallery-500 text-sm mt-1">Based on items in your cart</p>
+          </div>
+          <a href="./index.html" class="text-accent hover:text-accent-dark text-sm font-medium transition flex items-center gap-1">
+            View All
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+            </svg>
+          </a>
+        </div>
+        <div id="recommendations-container" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <!-- JS will populate recommendations -->
+        </div>
       </section>
-
-      <!-- Summary -->
-      <aside class="bg-white rounded-2xl shadow p-4 md:p-6 h-fit">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">Summary</h2>
-
-        <div class="flex justify-between text-sm text-gray-700 mb-2">
-          <span>Subtotal</span>
-          <span id="summary-subtotal">Ksh 0.00</span>
-        </div>
-
-        <div class="flex justify-between text-sm text-gray-500 mb-4">
-          <span>Estimated shipping</span>
-          <span id="summary-shipping">Ksh 0.00</span>
-        </div>
-
-        <div class="border-t pt-3 mt-3 flex justify-between text-base font-semibold text-gray-900 mb-4">
-          <span>Total</span>
-          <span id="summary-total">Ksh 0.00</span>
-        </div>
-
-        <!-- <button
-          id="checkout-btn"
-          class="w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 mb-3"
-        >
-          Proceed to checkout
-        </button> -->
-        <!-- Cart page: replace the button with this -->
-<a
-  href="./checkout.html"
-  class="block w-full bg-indigo-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-indigo-700 mb-3 text-center"
-  id="checkout-btn"
->
-  Proceed to checkout
-</a>
-
-        <button
-          id="clear-cart-btn"
-          class="w-full border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50"
-        >
-          Clear cart
-        </button>
-      </aside>
     </div>
   </main>
+
+  <!-- Footer -->
+  <footer class="bg-gallery-900 text-white py-8 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+            <span class="text-white font-display text-sm">S</span>
+          </div>
+          <span class="font-display text-lg">SANAA</span>
+        </div>
+        <div class="flex gap-6 text-sm text-gallery-400">
+          <a href="#" class="hover:text-accent transition">Privacy Policy</a>
+          <a href="#" class="hover:text-accent transition">Terms of Service</a>
+          <a href="#" class="hover:text-accent transition">Contact</a>
+        </div>
+        <p class="text-sm text-gallery-500">© 2024 SANAA. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cart Item Template -->
+  <template id="cart-item-template">
+    <div class="cart-item bg-white rounded-2xl shadow-sm overflow-hidden hover:shadow-md transition-shadow animate-fade-in">
+      <div class="p-4 sm:p-6">
+        <div class="flex gap-4 sm:gap-6">
+          
+          <!-- Product Image -->
+          <div class="relative flex-shrink-0">
+            <a href="#" class="block w-24 h-24 sm:w-32 sm:h-32 bg-gallery-100 rounded-xl overflow-hidden group">
+              <img 
+                class="cart-item-image w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                alt="Artwork"
+              />
+            </a>
+            <!-- Certificate Badge -->
+            <div class="cart-item-cert-badge hidden absolute -top-1 -right-1">
+              <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                <svg class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Product Details -->
+          <div class="flex-1 min-w-0 flex flex-col">
+            <div class="flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <h3 class="cart-item-title font-medium text-gallery-900 truncate text-base sm:text-lg">
+                    Artwork Title
+                  </h3>
+                  <p class="cart-item-artist text-sm text-gallery-500 mt-0.5">
+                    By Artist Name
+                  </p>
+                </div>
+                
+                <!-- Remove Button (Desktop) -->
+                <button class="remove-item hidden sm:flex items-center gap-1 text-sm text-gallery-400 hover:text-red-500 transition group">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                  <span class="opacity-0 group-hover:opacity-100 transition">Remove</span>
+                </button>
+              </div>
+
+              <!-- Price -->
+              <p class="cart-item-price text-lg font-semibold text-gallery-900 mt-2">
+                Ksh 0
+              </p>
+            </div>
+
+            <!-- Bottom Row: Quantity & Subtotal -->
+            <div class="flex items-center justify-between mt-4 pt-4 border-t border-gallery-100">
+              <!-- Quantity Controls -->
+              <div class="flex items-center gap-3">
+                <span class="text-sm text-gallery-500 hidden sm:inline">Qty:</span>
+                <div class="flex items-center border border-gallery-200 rounded-lg overflow-hidden">
+                  <button class="qty-decr w-8 h-8 flex items-center justify-center text-gallery-600 hover:bg-gallery-100 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                    </svg>
+                  </button>
+                  <input 
+                    type="number" 
+                    class="qty-input w-10 h-8 text-center text-sm font-medium border-x border-gallery-200 focus:outline-none" 
+                    min="1" 
+                    value="1"
+                  />
+                  <button class="qty-incr w-8 h-8 flex items-center justify-center text-gallery-600 hover:bg-gallery-100 transition">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Subtotal -->
+              <div class="text-right">
+                <p class="text-xs text-gallery-500">Subtotal</p>
+                <p class="cart-item-subtotal font-display text-lg text-gallery-900">
+                  Ksh 0
+                </p>
+              </div>
+            </div>
+
+            <!-- Remove Button (Mobile) -->
+            <button class="remove-item sm:hidden mt-3 flex items-center justify-center gap-1 w-full py-2 text-sm text-red-500 hover:bg-red-50 rounded-lg transition">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+              Remove from cart
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-50 space-y-3">
+    <!-- Toasts will be dynamically added here -->
+  </div>
+
+  <!-- Confirm Modal -->
+  <div id="confirm-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+      <div class="text-center">
+        <div id="confirm-icon" class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+        </div>
+        <h3 id="confirm-title" class="text-lg font-semibold text-gallery-900 mb-2">Remove Item?</h3>
+        <p id="confirm-message" class="text-gallery-600 text-sm mb-6">Are you sure you want to remove this artwork from your cart?</p>
+        <div class="flex gap-3">
+          <button id="confirm-cancel" class="flex-1 py-2.5 border border-gallery-200 rounded-xl text-gallery-700 font-medium hover:bg-gallery-50 transition">
+            Cancel
+          </button>
+          <button id="confirm-action" class="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition">
+            Remove
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="./js/cart.js"></script>
 </body>

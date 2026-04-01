@@ -2,179 +2,360 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Admin Dashboard | Art Market</title>
+  <title>Admin Dashboard — SANAA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js for analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'display': ['Playfair Display', 'serif'],
+            'sans': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'gallery': {
+              50: '#fafafa', 100: '#f5f5f5', 200: '#e5e5e5', 300: '#d4d4d4',
+              400: '#a3a3a3', 500: '#737373', 600: '#525252', 700: '#404040',
+              800: '#262626', 900: '#171717', 950: '#0a0a0a',
+            },
+            'accent': { DEFAULT: '#c9a962', light: '#dfc88a', dark: '#a88b3d' }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out',
+            'slide-up': 'slideUp 0.6s ease-out',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f5f5f5; }
+    ::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gallery-50 min-h-screen font-sans antialiased">
 
   <!-- Header -->
-  <header class="bg-white shadow">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="./index.html" class="text-xl font-bold text-indigo-700">
-        Art<span class="text-gray-900">Market</span> <span class="text-xs bg-red-500 text-white px-2 py-1 rounded">ADMIN</span>
-      </a>
+  <header class="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gallery-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+        <a href="./index.html" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 bg-gallery-900 rounded-full flex items-center justify-center group-hover:bg-accent transition-colors duration-300">
+            <span class="text-white font-display text-lg">S</span>
+          </div>
+          <span class="font-display text-2xl tracking-tight hidden sm:block">SANAA</span>
+          <span class="ml-2 px-2.5 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">Admin</span>
+        </a>
 
-      <nav class="flex gap-4 text-sm items-center">
-        <span id="admin-username" class="text-gray-600 font-medium"></span>
-        <!-- Add this to the navigation -->
-<a href="./admin-users.html" class="text-gray-600 hover:text-indigo-600">User Management</a>
-        <a href="./index.html" class="text-gray-600 hover:text-indigo-600">View Site</a>
-        <button id="logout-btn" class="text-red-500 hover:text-red-600 text-sm font-medium">
-          Logout
-        </button>
-      </nav>
+        <nav class="flex items-center gap-4">
+          <span id="admin-username" class="text-sm text-gallery-600 hidden sm:inline"></span>
+          <a href="./index.html" class="text-sm text-gallery-600 hover:text-gallery-900 transition">View Site</a>
+          <button id="logout-btn" class="p-2 hover:bg-red-50 rounded-full text-red-600 transition" title="Logout">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+          </button>
+        </nav>
+      </div>
     </div>
   </header>
 
-  <!-- Main -->
-  <main class="flex-1">
-    <div class="max-w-7xl mx-auto px-4 py-8">
-      
-      <!-- Status Message -->
-      <div id="admin-message" class="mb-4 text-sm text-center hidden"></div>
+  <!-- Message Area -->
+  <div id="admin-message" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 hidden"></div>
 
-      <!-- Stats Overview -->
-      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">Total Revenue</p>
-              <p id="total-revenue" class="text-2xl font-bold text-gray-900">Ksh 0</p>
-            </div>
-            <div class="bg-green-100 p-3 rounded-full">
-              <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- Admin Info Card -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gallery-100 overflow-hidden animate-fade-in">
+      <div class="p-6">
+        <div class="flex flex-col md:flex-row gap-6 items-start">
+          <!-- Admin Avatar -->
+          <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h2 class="font-display text-2xl text-gallery-900">Admin Dashboard</h2>
+                <p class="text-sm text-gallery-500 mt-1">System Administration & Management</p>
+                <p class="text-sm text-gallery-600 mt-3 max-w-2xl">
+                  Manage orders, users, artists, payments, and monitor platform analytics.
+                </p>
+              </div>
+              <div class="flex gap-2">
+                <button onclick="refreshAllData()" 
+                  class="px-4 py-2 border border-accent text-accent rounded-lg hover:bg-accent hover:text-white transition text-sm font-medium flex items-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                  Refresh
+                </button>
+              </div>
             </div>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
-            <span id="revenue-change" class="text-green-600">↑ 0%</span> from last month
-          </p>
         </div>
+      </div>
+    </section>
 
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">Total Orders</p>
-              <p id="total-orders" class="text-2xl font-bold text-gray-900">0</p>
-            </div>
-            <div class="bg-blue-100 p-3 rounded-full">
-              <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
-              </svg>
-            </div>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 animate-fade-in" style="animation-delay: 0.1s">
+      <!-- Total Revenue -->
+      <div class="bg-white rounded-xl p-5 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
-            <span id="pending-orders" class="text-yellow-600">0 pending</span>
-          </p>
-        </div>
-
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">Active Artists</p>
-              <p id="total-artists" class="text-2xl font-bold text-gray-900">0</p>
-            </div>
-            <div class="bg-purple-100 p-3 rounded-full">
-              <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
-              </svg>
-            </div>
+          <div>
+            <p class="text-xs text-gallery-500">Total Revenue</p>
+            <p id="total-revenue" class="text-xl font-display font-semibold text-green-600">Ksh 0</p>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
-            <span id="new-artists" class="text-green-600">+0 this month</span>
-          </p>
         </div>
+      </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-500">Total Paintings</p>
-              <p id="total-paintings" class="text-2xl font-bold text-gray-900">0</p>
-            </div>
-            <div class="bg-indigo-100 p-3 rounded-full">
-              <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-              </svg>
-            </div>
+      <!-- Total Orders -->
+      <div class="bg-white rounded-xl p-5 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
           </div>
-          <p class="text-xs text-gray-500 mt-2">
-            <span id="sold-paintings" class="text-blue-600">0 sold</span>
-          </p>
+          <div>
+            <p class="text-xs text-gallery-500">Total Orders</p>
+            <p id="total-orders" class="text-xl font-display font-semibold text-indigo-600">0</p>
+            <p id="pending-orders" class="text-xs text-yellow-600">0 pending</p>
+          </div>
         </div>
-      </section>
+      </div>
 
+      <!-- Artists -->
+      <div class="bg-white rounded-xl p-5 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-gallery-500">Artists</p>
+            <p id="total-artists" class="text-xl font-display font-semibold text-purple-600">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Paintings -->
+      <div class="bg-white rounded-xl p-5 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-gallery-500">Paintings</p>
+            <p id="total-paintings" class="text-xl font-display font-semibold text-blue-600">0</p>
+            <p id="sold-paintings" class="text-xs text-green-600">0 sold</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Users -->
+      <div class="bg-white rounded-xl p-5 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-gallery-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-gallery-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-gallery-500">Users</p>
+            <p id="total-users" class="text-xl font-display font-semibold text-gallery-700">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deliveries -->
+      <div class="bg-white rounded-xl p-5 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-xs text-gallery-500">Deliveries</p>
+            <p id="total-deliveries" class="text-xl font-display font-semibold text-orange-600">0</p>
+            <p id="pending-deliveries" class="text-xs text-yellow-600">0 pending</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Navigation Section -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gallery-100 overflow-hidden animate-fade-in" style="animation-delay: 0.2s">
       <!-- Tab Navigation -->
-      <div class="border-b border-gray-200 mb-6">
-        <nav class="-mb-px flex space-x-8">
-          <button class="tab-btn py-2 px-1 border-b-2 border-indigo-500 font-medium text-sm text-indigo-600" data-tab="orders">
-            Orders & Shipping
+      <div class="border-b border-gallery-100">
+        <nav class="flex overflow-x-auto px-6 pt-4" aria-label="Tabs">
+          <button data-tab="orders" class="tab-btn pb-4 px-4 border-b-2 border-accent font-medium text-sm text-accent whitespace-nowrap transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+              </svg>
+              Orders
+            </span>
           </button>
-          <button class="tab-btn py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="users">
-            Users Management
+          <button data-tab="deliveries" class="tab-btn pb-4 px-4 border-b-2 border-transparent font-medium text-sm text-gallery-500 hover:text-gallery-700 hover:border-gallery-300 whitespace-nowrap transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+              </svg>
+              Deliveries
+            </span>
           </button>
-          <button class="tab-btn py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="artists">
-            Artists & Paintings
+          <button data-tab="users" class="tab-btn pb-4 px-4 border-b-2 border-transparent font-medium text-sm text-gallery-500 hover:text-gallery-700 hover:border-gallery-300 whitespace-nowrap transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+              Users
+            </span>
           </button>
-          <button class="tab-btn py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="payments">
-            Payments & Payouts
+          <button data-tab="artists" class="tab-btn pb-4 px-4 border-b-2 border-transparent font-medium text-sm text-gallery-500 hover:text-gallery-700 hover:border-gallery-300 whitespace-nowrap transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+              </svg>
+              Artists & Art
+            </span>
           </button>
-          <button class="tab-btn py-2 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="analytics">
-            Analytics
+          <button data-tab="payments" class="tab-btn pb-4 px-4 border-b-2 border-transparent font-medium text-sm text-gallery-500 hover:text-gallery-700 hover:border-gallery-300 whitespace-nowrap transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+              </svg>
+              Payments
+            </span>
+          </button>
+          <button data-tab="analytics" class="tab-btn pb-4 px-4 border-b-2 border-transparent font-medium text-sm text-gallery-500 hover:text-gallery-700 hover:border-gallery-300 whitespace-nowrap transition-colors">
+            <span class="flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+              </svg>
+              Analytics
+            </span>
           </button>
         </nav>
       </div>
 
       <!-- Tab Contents -->
-      <!-- Orders & Shipping Tab -->
-      <div id="orders-tab" class="tab-content">
-        <div class="bg-white rounded-lg shadow">
-          <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="text-lg font-semibold">Recent Orders</h2>
-            <div class="flex gap-2">
-              <select id="order-status-filter" class="text-sm border rounded px-3 py-1">
-                <option value="all">All Status</option>
-                <option value="paid">Paid</option>
+      <div class="p-6">
+        
+        <!-- Orders Tab -->
+        <div id="orders-tab" class="tab-content">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 class="font-display text-xl text-gallery-900">Recent Orders</h2>
+              <p class="text-sm text-gallery-500 mt-1">Manage and track all customer orders</p>
+            </div>
+            <div class="flex gap-3">
+              <select id="order-status-filter" class="text-sm border border-gallery-200 rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-accent/20 focus:border-accent transition">
+                <option value="all">All Orders</option>
                 <option value="pending">Pending</option>
-                <option value="shipped">Shipped</option>
-                <option value="delivered">Delivered</option>
+                <option value="paid">Paid</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
               </select>
-              <button onclick="exportOrders()" class="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700">
+              <button onclick="exportOrders()" class="text-sm bg-gallery-900 text-white px-4 py-2.5 rounded-lg hover:bg-accent transition font-medium flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
                 Export CSV
               </button>
             </div>
           </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+          
+          <div class="overflow-x-auto rounded-xl border border-gallery-200">
+            <table class="min-w-full divide-y divide-gallery-200">
+              <thead class="bg-gallery-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Delivery</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Order ID</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Customer</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Amount</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Payment</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Delivery</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Date</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody id="orders-table" class="bg-white divide-y divide-gray-200">
-                <!-- JS will populate -->
+              <tbody id="orders-table" class="bg-white divide-y divide-gallery-100">
+                <tr>
+                  <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center gap-3">
+                      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+                      <span class="text-sm text-gallery-500">Loading orders...</span>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- Users Management Tab -->
-      <div id="users-tab" class="tab-content hidden">
-        <div class="bg-white rounded-lg shadow">
-          <div class="px-6 py-4 border-b flex items-center justify-between">
-            <h2 class="text-lg font-semibold">Users</h2>
-            <div class="flex gap-2">
-              <input type="text" id="user-search" placeholder="Search users..." class="text-sm border rounded px-3 py-1">
-              <select id="user-role-filter" class="text-sm border rounded px-3 py-1">
+        <!-- Deliveries Tab -->
+        <div id="deliveries-tab" class="tab-content hidden">
+          <div class="mb-6">
+            <h2 class="font-display text-xl text-gallery-900">Delivery Management</h2>
+            <p class="text-sm text-gallery-500 mt-1">Manage order shipments, tracking, and delivery status</p>
+          </div>
+          
+          <div id="deliveries-section">
+            <div class="flex flex-col items-center justify-center py-12 gap-3">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+              <span class="text-sm text-gallery-500">Loading deliveries...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content hidden">
+          <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div>
+              <h2 class="font-display text-xl text-gallery-900">Users</h2>
+              <p class="text-sm text-gallery-500 mt-1">Manage platform users and permissions</p>
+            </div>
+            <div class="flex gap-3">
+              <div class="relative">
+                <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gallery-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                </svg>
+                <input type="text" id="user-search" placeholder="Search users..." 
+                       class="text-sm border border-gallery-200 rounded-lg pl-10 pr-4 py-2.5 w-56 focus:ring-2 focus:ring-accent/20 focus:border-accent transition">
+              </div>
+              <select id="user-role-filter" class="text-sm border border-gallery-200 rounded-lg px-4 py-2.5 bg-white focus:ring-2 focus:ring-accent/20 focus:border-accent transition">
                 <option value="all">All Roles</option>
                 <option value="buyer">Buyers</option>
                 <option value="artist">Artists</option>
@@ -182,237 +363,431 @@
               </select>
             </div>
           </div>
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
+          
+          <div class="overflow-x-auto rounded-xl border border-gallery-200">
+            <table class="min-w-full divide-y divide-gallery-200">
+              <thead class="bg-gallery-50">
                 <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">ID</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Name</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Email</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Role</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Joined</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Status</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gallery-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody id="users-table" class="bg-white divide-y divide-gray-200">
-                <!-- JS will populate -->
+              <tbody id="users-table" class="bg-white divide-y divide-gallery-100">
+                <tr>
+                  <td colspan="7" class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center gap-3">
+                      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+                      <span class="text-sm text-gallery-500">Loading users...</span>
+                    </div>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
         </div>
-      </div>
 
-      <!-- Artists & Paintings Tab -->
-      <div id="artists-tab" class="tab-content hidden">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Artists List -->
-          <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b">
-              <h2 class="text-lg font-semibold">Artists</h2>
-            </div>
-            <div class="max-h-96 overflow-y-auto">
-              <div id="artists-list" class="divide-y divide-gray-200">
-                <!-- JS will populate -->
+        <!-- Artists & Art Tab -->
+        <div id="artists-tab" class="tab-content hidden">
+          <div class="mb-6">
+            <h2 class="font-display text-xl text-gallery-900">Artists & Artworks</h2>
+            <p class="text-sm text-gallery-500 mt-1">Browse artists and their artwork collections</p>
+          </div>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Artists List -->
+            <div class="bg-gallery-50 rounded-xl p-6 border border-gallery-200">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-display text-lg text-gallery-900">Artists</h3>
+                <span class="text-sm text-gallery-500" id="artists-count">0 artists</span>
+              </div>
+              <div id="artists-list" class="space-y-3 max-h-96 overflow-y-auto">
+                <div class="flex justify-center py-8">
+                  <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Paintings Grid -->
-          <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Recent Paintings</h2>
-              <select id="painting-filter" class="text-sm border rounded px-2 py-1">
-                <option value="all">All</option>
-                <option value="approved">Approved</option>
-                <option value="pending">Pending Review</option>
-              </select>
-            </div>
-            <div class="p-4">
+            
+            <!-- Paintings Grid -->
+            <div class="bg-gallery-50 rounded-xl p-6 border border-gallery-200">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-display text-lg text-gallery-900">Recent Paintings</h3>
+                <select id="painting-filter" class="text-sm border border-gallery-200 rounded-lg px-3 py-1.5 bg-white focus:ring-2 focus:ring-accent/20 focus:border-accent transition">
+                  <option value="all">All</option>
+                  <option value="recent">Recent</option>
+                  <option value="popular">Popular</option>
+                </select>
+              </div>
               <div id="paintings-grid" class="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto">
-                <!-- JS will populate -->
+                <div class="col-span-2 flex justify-center py-8">
+                  <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Payments & Payouts Tab -->
-      <div id="payments-tab" class="tab-content hidden">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Recent Payments -->
-          <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b">
-              <h2 class="text-lg font-semibold">Recent Payments</h2>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  </tr>
-                </thead>
-                <tbody id="payments-table" class="bg-white divide-y divide-gray-200">
-                  <!-- JS will populate -->
-                </tbody>
-              </table>
-            </div>
+        <!-- Payments Tab -->
+        <div id="payments-tab" class="tab-content hidden">
+          <div class="mb-6">
+            <h2 class="font-display text-xl text-gallery-900">Payments & Payouts</h2>
+            <p class="text-sm text-gallery-500 mt-1">Manage transactions and artist payouts</p>
           </div>
-
-          <!-- Artist Payouts -->
-          <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b flex items-center justify-between">
-              <h2 class="text-lg font-semibold">Artist Payouts</h2>
-              <button onclick="openPayoutModal()" class="text-sm bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">
-                New Payout
-              </button>
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Recent Payments -->
+            <div class="bg-gallery-50 rounded-xl p-6 border border-gallery-200">
+              <h3 class="font-display text-lg text-gallery-900 mb-4">Recent Payments</h3>
+              <div class="overflow-x-auto rounded-lg border border-gallery-200">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-gallery-100">
+                    <tr>
+                      <th class="px-4 py-3 text-left text-xs font-semibold text-gallery-600 uppercase">ID</th>
+                      <th class="px-4 py-3 text-left text-xs font-semibold text-gallery-600 uppercase">Order</th>
+                      <th class="px-4 py-3 text-left text-xs font-semibold text-gallery-600 uppercase">Amount</th>
+                      <th class="px-4 py-3 text-left text-xs font-semibold text-gallery-600 uppercase">Method</th>
+                      <th class="px-4 py-3 text-left text-xs font-semibold text-gallery-600 uppercase">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="payments-table" class="bg-white divide-y divide-gallery-100">
+                    <tr>
+                      <td colspan="5" class="px-4 py-8 text-center">
+                        <div class="flex justify-center">
+                          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                  <tr>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Artist</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                  </tr>
-                </thead>
-                <tbody id="payouts-table" class="bg-white divide-y divide-gray-200">
-                  <!-- JS will populate -->
-                </tbody>
-              </table>
+            
+            <!-- Payout Management -->
+            <div id="payout-management-section" class="bg-gallery-50 rounded-xl p-6 border border-gallery-200">
+              <h3 class="font-display text-lg text-gallery-900 mb-4">Payout Management</h3>
+              <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                <span class="ml-2 text-sm text-gallery-500">Loading payouts...</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Analytics Tab -->
-      <div id="analytics-tab" class="tab-content hidden">
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <!-- Sales Chart -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold mb-4">Sales Overview</h3>
-            <canvas id="sales-chart" width="400" height="200"></canvas>
+        <!-- Analytics Tab -->
+        <div id="analytics-tab" class="tab-content hidden">
+          <div class="mb-6">
+            <h2 class="font-display text-xl text-gallery-900">Analytics</h2>
+            <p class="text-sm text-gallery-500 mt-1">Platform performance and insights</p>
           </div>
-
-          <!-- Category Distribution -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold mb-4">Sales by Category</h3>
-            <canvas id="category-chart" width="400" height="200"></canvas>
-          </div>
-
-          <!-- Top Artists -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold mb-4">Top Performing Artists</h3>
-            <div id="top-artists" class="space-y-3">
-              <!-- JS will populate -->
+          
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Sales Chart -->
+            <div class="bg-gallery-50 rounded-xl p-6 border border-gallery-200">
+              <h3 class="font-display text-lg text-gallery-900 mb-4">Sales Trend</h3>
+              <div class="h-64">
+                <canvas id="sales-chart"></canvas>
+              </div>
+            </div>
+            
+            <!-- Category Chart -->
+            <div class="bg-gallery-50 rounded-xl p-6 border border-gallery-200">
+              <h3 class="font-display text-lg text-gallery-900 mb-4">Sales by Category</h3>
+              <div class="h-64">
+                <canvas id="category-chart"></canvas>
+              </div>
             </div>
           </div>
-
-          <!-- Recent Activity -->
-          <div class="bg-white rounded-lg shadow p-6">
-            <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
-            <div id="activity-log" class="space-y-2 text-sm max-h-64 overflow-y-auto">
-              <!-- JS will populate -->
+          
+          <!-- Activity Log -->
+          <div class="mt-6 bg-gallery-50 rounded-xl p-6 border border-gallery-200">
+            <h3 class="font-display text-lg text-gallery-900 mb-4">Recent Activity</h3>
+            <div id="activity-log" class="space-y-3 max-h-64 overflow-y-auto text-sm">
+              <div class="flex justify-center py-8">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+              </div>
             </div>
           </div>
         </div>
+
       </div>
-    </div>
+    </section>
   </main>
 
-  <!-- Modals -->
-  <!-- Delivery Update Modal -->
-  <div id="delivery-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-      <h3 class="text-lg font-semibold mb-4">Update Delivery Status</h3>
-      <input type="hidden" id="modal-delivery-id">
+  <!-- Ship Order Modal -->
+  <div id="ship-modal" class="fixed inset-0 bg-gallery-950/60 backdrop-blur-sm hidden z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto animate-slide-up">
+      <div class="px-6 py-5 border-b border-gallery-100 flex justify-between items-center sticky top-0 bg-white">
+        <h3 class="font-display text-xl text-gallery-900 flex items-center gap-2">
+          <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+          </svg>
+          Ship Order
+        </h3>
+        <button onclick="closeShipModal()" class="p-2 hover:bg-gallery-100 rounded-full transition text-gallery-400 hover:text-gallery-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
       
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-        <select id="modal-delivery-status" class="w-full px-3 py-2 border rounded-lg">
-          <option value="pending">Pending</option>
-          <option value="shipping">Shipping</option>
-          <option value="delivered">Delivered</option>
-          <option value="cancelled">Cancelled</option>
-        </select>
-      </div>
+      <form onsubmit="submitShipment(event)" class="p-6 space-y-5">
+        <input type="hidden" id="ship-modal-delivery-id" />
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Tracking Number *</label>
+          <input type="text" id="ship-tracking-number" required
+                 placeholder="e.g., TRK123456789"
+                 class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Carrier / Courier</label>
+          <select id="ship-carrier" class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white transition">
+            <option value="Standard Delivery">Standard Delivery</option>
+            <option value="Express Delivery">Express Delivery</option>
+            <option value="DHL">DHL</option>
+            <option value="FedEx">FedEx</option>
+            <option value="G4S">G4S</option>
+            <option value="Posta Kenya">Posta Kenya</option>
+            <option value="Fargo Courier">Fargo Courier</option>
+            <option value="Wells Fargo">Wells Fargo</option>
+            <option value="Sendy">Sendy</option>
+            <option value="Local Courier">Local Courier</option>
+            <option value="Self Pickup">Self Pickup</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Estimated Delivery (days)</label>
+          <input type="number" id="ship-estimated-days" value="7" min="1" max="60"
+                 class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition" />
+          <p class="text-xs text-gallery-500 mt-1.5">Number of days from today</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Notes (optional)</label>
+          <textarea id="ship-notes" rows="2"
+                    placeholder="Any special instructions or notes..."
+                    class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"></textarea>
+        </div>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-sm text-blue-800">
+              Customer will automatically receive an email notification with tracking details.
+            </p>
+          </div>
+        </div>
+        
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeShipModal()"
+                  class="flex-1 px-4 py-3 border border-gallery-300 rounded-lg text-gallery-700 hover:bg-gallery-50 transition font-medium">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="flex-1 px-4 py-3 bg-gallery-900 text-white rounded-lg hover:bg-accent transition font-medium flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+            </svg>
+            Ship Order
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Tracking Number</label>
-        <input type="text" id="modal-tracking" class="w-full px-3 py-2 border rounded-lg">
-      </div>
-
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Carrier</label>
-        <select id="modal-carrier" class="w-full px-3 py-2 border rounded-lg">
-          <option value="">Select Carrier</option>
-          <option value="DHL">DHL</option>
-          <option value="FedEx">FedEx</option>
-          <option value="UPS">UPS</option>
-          <option value="Local Courier">Local Courier</option>
-        </select>
-      </div>
-
-      <div class="flex justify-end gap-2">
-        <button onclick="closeDeliveryModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-          Cancel
+  <!-- Update Tracking Modal -->
+  <div id="update-tracking-modal" class="fixed inset-0 bg-gallery-950/60 backdrop-blur-sm hidden z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-slide-up">
+      <div class="px-6 py-5 border-b border-gallery-100 flex justify-between items-center">
+        <h3 class="font-display text-xl text-gallery-900 flex items-center gap-2">
+          <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+          Update Tracking Info
+        </h3>
+        <button onclick="closeUpdateTrackingModal()" class="p-2 hover:bg-gallery-100 rounded-full transition text-gallery-400 hover:text-gallery-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
         </button>
-        <button onclick="updateDelivery()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-          Update
-        </button>
       </div>
+      
+      <form onsubmit="submitTrackingUpdate(event)" class="p-6 space-y-5">
+        <input type="hidden" id="update-modal-delivery-id" />
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Tracking Number *</label>
+          <input type="text" id="update-tracking-number" required
+                 class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Carrier / Courier</label>
+          <select id="update-carrier" class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white transition">
+            <option value="Standard Delivery">Standard Delivery</option>
+            <option value="Express Delivery">Express Delivery</option>
+            <option value="DHL">DHL</option>
+            <option value="FedEx">FedEx</option>
+            <option value="G4S">G4S</option>
+            <option value="Posta Kenya">Posta Kenya</option>
+            <option value="Fargo Courier">Fargo Courier</option>
+            <option value="Sendy">Sendy</option>
+            <option value="Local Courier">Local Courier</option>
+          </select>
+        </div>
+        
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeUpdateTrackingModal()"
+                  class="flex-1 px-4 py-3 border border-gallery-300 rounded-lg text-gallery-700 hover:bg-gallery-50 transition font-medium">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="flex-1 px-4 py-3 bg-gallery-900 text-white rounded-lg hover:bg-accent transition font-medium">
+            Update Tracking
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 
   <!-- User Edit Modal -->
-  <div id="user-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-      <h3 class="text-lg font-semibold mb-4">Edit User</h3>
-      <input type="hidden" id="modal-user-id">
+  <div id="user-modal" class="fixed inset-0 bg-gallery-950/60 backdrop-blur-sm hidden z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-slide-up">
+      <div class="px-6 py-5 border-b border-gallery-100 flex justify-between items-center">
+        <h3 class="font-display text-xl text-gallery-900">Edit User</h3>
+        <button onclick="closeUserModal()" class="p-2 hover:bg-gallery-100 rounded-full transition text-gallery-400 hover:text-gallery-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
       
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-        <input type="text" id="modal-user-name" class="w-full px-3 py-2 border rounded-lg">
-      </div>
-
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-        <select id="modal-user-role" class="w-full px-3 py-2 border rounded-lg">
-          <option value="buyer">Buyer</option>
-          <option value="artist">Artist</option>
-          <option value="admin">Admin</option>
-        </select>
-      </div>
-
-      <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-        <select id="modal-user-status" class="w-full px-3 py-2 border rounded-lg">
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-        </select>
-      </div>
-
-      <div class="flex justify-end gap-2">
-        <button onclick="closeUserModal()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300">
-          Cancel
-        </button>
-        <button onclick="updateUser()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
-          Save
-        </button>
-      </div>
+      <form onsubmit="submitUserEdit(event)" class="p-6 space-y-5">
+        <input type="hidden" id="modal-user-id" />
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Name</label>
+          <input type="text" id="modal-user-name"
+                 class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Role</label>
+          <select id="modal-user-role" class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white transition">
+            <option value="buyer">Buyer</option>
+            <option value="artist">Artist</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Status</label>
+          <select id="modal-user-status" class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white transition">
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+          </select>
+        </div>
+        
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeUserModal()"
+                  class="flex-1 px-4 py-3 border border-gallery-300 rounded-lg text-gallery-700 hover:bg-gallery-50 transition font-medium">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="flex-1 px-4 py-3 bg-gallery-900 text-white rounded-lg hover:bg-accent transition font-medium">
+            Save Changes
+          </button>
+        </div>
+      </form>
     </div>
   </div>
-<!-- Remove the inline script and just have the section -->
-<section id="payout-management-section" class="mt-8">
-  <!-- JavaScript will populate this -->
-</section>
 
-<!-- No need for the extra script tag since admin-dashboard.js handles it -->
+  <!-- Delivery Update Modal (Generic) -->
+  <div id="delivery-modal" class="fixed inset-0 bg-gallery-950/60 backdrop-blur-sm hidden z-50 items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-slide-up">
+      <div class="px-6 py-5 border-b border-gallery-100 flex justify-between items-center">
+        <h3 class="font-display text-xl text-gallery-900">Update Delivery</h3>
+        <button onclick="closeDeliveryModal()" class="p-2 hover:bg-gallery-100 rounded-full transition text-gallery-400 hover:text-gallery-600">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      
+      <form onsubmit="event.preventDefault(); updateDelivery();" class="p-6 space-y-5">
+        <input type="hidden" id="modal-delivery-id" />
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Status</label>
+          <select id="modal-delivery-status" class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white transition">
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="shipping">Shipping</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Tracking Number</label>
+          <input type="text" id="modal-tracking"
+                 placeholder="Enter tracking number"
+                 class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition" />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gallery-700 mb-2">Carrier</label>
+          <select id="modal-carrier" class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white transition">
+            <option value="">Select carrier</option>
+            <option value="Standard Delivery">Standard Delivery</option>
+            <option value="Express Delivery">Express Delivery</option>
+            <option value="DHL">DHL</option>
+            <option value="FedEx">FedEx</option>
+            <option value="G4S">G4S</option>
+            <option value="Posta Kenya">Posta Kenya</option>
+            <option value="Local Courier">Local Courier</option>
+          </select>
+        </div>
+        
+        <div class="flex gap-3 pt-2">
+          <button type="button" onclick="closeDeliveryModal()"
+                  class="flex-1 px-4 py-3 border border-gallery-300 rounded-lg text-gallery-700 hover:bg-gallery-50 transition font-medium">
+            Cancel
+          </button>
+          <button type="submit"
+                  class="flex-1 px-4 py-3 bg-gallery-900 text-white rounded-lg hover:bg-accent transition font-medium">
+            Update Delivery
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-gallery-900 text-white py-8 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+            <span class="text-white font-display text-sm">S</span>
+          </div>
+          <span class="font-display text-lg">SANAA</span>
+          <span class="ml-2 px-2 py-0.5 bg-purple-600 text-xs rounded-full">Admin</span>
+        </div>
+        <p class="text-sm text-gallery-500">© 2024 SANAA. Admin Dashboard</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
   <script type="module" src="./js/admin-dashboard.js"></script>
 </body>
 </html>

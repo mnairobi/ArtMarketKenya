@@ -13,7 +13,7 @@ from controllers.order import OrderResource, OrderListResource  , BuyerOrdersRes
 from controllers.orderDetails import OrderDetailsListResource, OrderDetailResource
 from controllers.payments import PaymentResource
 from controllers.address import AddressListResource,AddressResource
-from controllers.delivery import DeliveryResource, DeliveryListResource,DeliveryResource,DeliveryListResource,DeliveryShipResource,AllDeliveriesResource
+from controllers.delivery import DeliveryResource,DeliveryListResource,DeliveryShipResource,AllDeliveriesResource
 from controllers.review import ReviewResource, ReviewListResource
 from controllers.wishlist import WishlistResource, WishlistClearResource
 from controllers.artistPayout import ArtistPayoutResource, ArtistPayoutListResource,ArtistBalanceResource,ProcessPayoutResource,BulkPayoutResource,PlatformEarningsResource
@@ -108,6 +108,8 @@ def register_routes(app):
     api.add_resource(PaymentResource, '/payments',endpoint="create_payment")
     api.add_resource(PaymentResource, '/payments/<int:payment_id>', endpoint="payment_id")
 
+   
+
 
     # M-Pesa STK callback
     app.add_url_rule(
@@ -122,13 +124,20 @@ def register_routes(app):
     api.add_resource(AddressResource, '/addresses/<int:address_id>')
 
     # delivery routes
+    # api.add_resource(DeliveryResource, '/deliveries')
+    # api.add_resource(DeliveryListResource, '/deliveries/<int:delivery_id>')
+    # api.add_resource(ReviewListResource, "/reviews")
+    # api.add_resource(ReviewResource, "/reviews/<int:review_id>")
+    # api.add_resource(DeliveryShipResource, '/deliveries/<int:delivery_id>/ship')
+    # api.add_resource(AllDeliveriesResource, '/deliveries/all')
+
+
+    # Make sure this order is correct in your routes
+    api.add_resource(AllDeliveriesResource, '/deliveries/all')  # This MUST come first
     api.add_resource(DeliveryResource, '/deliveries')
     api.add_resource(DeliveryListResource, '/deliveries/<int:delivery_id>')
-    api.add_resource(ReviewListResource, "/reviews")
-    api.add_resource(ReviewResource, "/reviews/<int:review_id>")
     api.add_resource(DeliveryShipResource, '/deliveries/<int:delivery_id>/ship')
-    api.add_resource(AllDeliveriesResource, '/deliveries/all')
-        
+            
 
     #wishlist routes
     api.add_resource(WishlistResource, '/wishlists/<int:user_id>')
@@ -175,3 +184,8 @@ def register_routes(app):
     api.add_resource(PromoteToAdminResource, '/users/<int:user_id>/promote-admin')
     api.add_resource(UserSuspendResource, '/users/<int:user_id>/suspend')
     api.add_resource(UserActivateResource, '/users/<int:user_id>/activate')
+
+
+        # Review routes
+    api.add_resource(ReviewListResource, '/reviews')
+    api.add_resource(ReviewResource, '/reviews/<int:review_id>')

@@ -25,3 +25,5 @@ class Payment(db.Model):
             "status": self.status,
             "payment_date": self.payment_date.isoformat() if self.payment_date else None,
         }
+
+

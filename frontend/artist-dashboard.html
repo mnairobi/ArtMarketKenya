@@ -2,327 +2,333 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Artist Dashboard | Art Market</title>
+  <title>Artist Studio — SANAA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'display': ['Playfair Display', 'serif'],
+            'sans': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'gallery': {
+              50: '#fafafa', 100: '#f5f5f5', 200: '#e5e5e5', 300: '#d4d4d4',
+              400: '#a3a3a3', 500: '#737373', 600: '#525252', 700: '#404040',
+              800: '#262626', 900: '#171717', 950: '#0a0a0a',
+            },
+            'accent': { DEFAULT: '#c9a962', light: '#dfc88a', dark: '#a88b3d' }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out',
+            'slide-up': 'slideUp 0.6s ease-out',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+          },
+        }
+      }
+    }
+  </script>
+
+  <style>
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #f5f5f5; }
+    ::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gallery-50 min-h-screen font-sans antialiased">
 
   <!-- Header -->
-  <header class="bg-white shadow">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="./index.html" class="text-xl font-bold text-indigo-700">
-        Art<span class="text-gray-900">Market</span>
-      </a>
+  <header class="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gallery-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+        <a href="./index.html" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 bg-gallery-900 rounded-full flex items-center justify-center group-hover:bg-accent transition-colors duration-300">
+            <span class="text-white font-display text-lg">S</span>
+          </div>
+          <span class="font-display text-2xl tracking-tight hidden sm:block">SANAA</span>
+        </a>
 
-      <nav class="flex gap-4 text-sm items-center">
-        <span id="artist-username" class="text-gray-600"></span>
-        <a href="./index.html" class="text-gray-600 hover:text-indigo-600">Home</a>
-        <button id="logout-btn" class="text-red-500 hover:text-red-600 text-sm">
-          Logout
-        </button>
-      </nav>
+        <nav class="flex items-center gap-4">
+          <span id="artist-username" class="text-sm text-gallery-600 hidden sm:inline"></span>
+          <a href="./index.html" class="text-sm text-gallery-600 hover:text-gallery-900 transition">Marketplace</a>
+          <button id="logout-btn" class="p-2 hover:bg-red-50 rounded-full text-red-600 transition" title="Logout">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+          </button>
+        </nav>
+      </div>
     </div>
   </header>
 
-  <!-- Main -->
-  <main class="flex-1">
-    <div class="max-w-6xl mx-auto px-4 py-8 space-y-8">
+  <!-- Message Area -->
+  <div id="dashboard-message" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 hidden"></div>
 
-      <!-- Status / errors -->
-      <div id="dashboard-message" class="text-sm text-center text-red-600 hidden"></div>
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-      <!-- Top: Artist header + hidden profile form -->
-      <section class="bg-white rounded-2xl shadow p-6">
-        <!-- Compact artist header row -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div class="flex items-center gap-4">
-            <button
-              type="button"
-              id="artist-avatar-button"
-              class="relative rounded-full overflow-hidden border-2 border-indigo-500 w-20 h-20 shrink-0"
-              title="Click to edit your profile"
-            >
-              <img
-                id="artist-profile-image"
-                src="https://via.placeholder.com/150?text=Artist"
-                alt="Artist profile"
-                class="w-full h-full object-cover"
-              />
-            </button>
-
-            <div>
-              <h2 id="artist-name" class="text-lg font-semibold text-gray-800">Artist</h2>
-              <p id="artist-role-label" class="text-xs text-gray-500 mt-0.5">Artist account</p>
-              <p id="artist-bio-text" class="text-xs text-gray-600 mt-2 line-clamp-2">
-                You haven't created your artist profile yet. Click your picture to get started.
-              </p>
+    <!-- Artist Profile Card -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gallery-100 overflow-hidden animate-fade-in">
+      <div class="p-6">
+        <div class="flex flex-col md:flex-row gap-6">
+          <!-- Avatar -->
+          <button type="button" id="artist-avatar-button" 
+            class="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-accent hover:border-accent-dark transition group flex-shrink-0">
+            <img id="artist-profile-image" src="https://via.placeholder.com/150?text=Artist" 
+              alt="Artist" class="w-full h-full object-cover"/>
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+              <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+              </svg>
             </div>
-          </div>
+          </button>
 
-          <div class="flex items-center gap-3">
-            <button
-              id="edit-profile-btn"
-              type="button"
-              class="px-3 py-1.5 text-xs rounded-lg border border-indigo-500 text-indigo-600 hover:bg-indigo-50"
-            >
-              Edit profile
-            </button>
+          <!-- Info -->
+          <div class="flex-1">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+              <div>
+                <h2 id="artist-name" class="font-display text-2xl text-gallery-900">Artist</h2>
+                <p id="artist-role-label" class="text-sm text-gallery-500 mt-1">Artist Studio</p>
+                <p id="artist-bio-text" class="text-sm text-gallery-600 mt-3 max-w-2xl">
+                  Click your profile picture to set up your artist profile
+                </p>
+              </div>
+              <button id="edit-profile-btn" 
+                class="px-4 py-2 border border-accent text-accent rounded-lg hover:bg-accent hover:text-white transition text-sm font-medium">
+                Edit Profile
+              </button>
+            </div>
           </div>
         </div>
 
-        <!-- Collapsible profile form -->
-        <div
-          id="artist-profile-form-wrap"
-          class="mt-5 border-t pt-4 hidden"
-        >
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-gray-800">
-              My Artist Profile
-            </h3>
-            <span
-              id="profile-mode-label"
-              class="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-600"
-            >
-              New profile
-            </span>
-          </div>
-
+        <!-- Profile Form (Hidden) -->
+        <div id="artist-profile-form-wrap" class="mt-6 pt-6 border-t border-gallery-100 hidden animate-slide-up">
+          <h3 class="text-lg font-semibold text-gallery-900 mb-4">Artist Profile</h3>
           <form id="artist-profile-form" class="space-y-4">
             <div>
-              <label for="artist-bio" class="block text-sm text-gray-700 mb-1">
-                Bio
-              </label>
-              <textarea
-                id="artist-bio"
-                name="bio"
-                rows="3"
-                class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                placeholder="Tell buyers about your background, style, and inspiration..."
-              ></textarea>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Bio</label>
+              <textarea id="artist-bio" name="bio" rows="4" 
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
+                placeholder="Tell buyers about your art, inspiration, and creative journey..."></textarea>
             </div>
 
             <div>
-              <label for="artist-social-links" class="block text-sm text-gray-700 mb-1">
-                Social links (e.g., Instagram, website)
-              </label>
-              <textarea
-                id="artist-social-links"
-                name="social_links"
-                rows="2"
-                class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                placeholder="https://instagram.com/..., https://myportfolio.com/..."
-              ></textarea>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Social Links</label>
+              <textarea id="artist-social-links" name="social_links" rows="2"
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
+                placeholder="Instagram, Website, etc."></textarea>
             </div>
 
             <div>
-              <label for="artist-picture" class="block text-sm text-gray-700 mb-1">
-                Profile picture
-              </label>
-              <input
-                type="file"
-                id="artist-picture"
-                name="profile_picture"
-                accept="image/*"
-                class="text-sm"
-              />
-              <p class="text-xs text-gray-500 mt-1">
-                Optional. JPG/PNG recommended. Click your avatar above to open/close this form.
-              </p>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Profile Picture</label>
+              <input type="file" id="artist-picture" name="profile_picture" accept="image/*" 
+                class="block w-full text-sm text-gallery-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-accent/10 file:text-accent hover:file:bg-accent/20"/>
             </div>
 
-            <button
-              type="submit"
-              id="artist-profile-submit"
-              class="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700"
-            >
-              Save profile
+            <button type="submit" class="px-6 py-3 bg-gallery-900 text-white rounded-lg hover:bg-accent transition font-medium">
+              Save Profile
             </button>
           </form>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <!-- Earnings Section -->
-      <section class="bg-white rounded-2xl shadow p-6">
-        <div class="flex items-center justify-between mb-4">
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in" style="animation-delay: 0.1s">
+      <div class="bg-white rounded-xl p-6 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+          </div>
           <div>
-            <h3 class="text-md font-semibold text-gray-800">My Earnings</h3>
-            <p class="text-xs text-gray-500">Track your sales and payouts</p>
-          </div>
-          <button onclick="window.refreshEarnings()" class="text-xs text-indigo-600 hover:text-indigo-800">
-            Refresh
-          </button>
-        </div>
-
-        <div id="earnings-content">
-          <div class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <span class="ml-2 text-sm text-gray-600">Loading earnings...</span>
+            <p class="text-sm text-gallery-500">Total Artworks</p>
+            <p id="stat-total-paintings" class="text-2xl font-display font-semibold text-gallery-900">0</p>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- Sales Analytics Section -->
-      <section class="bg-white rounded-2xl shadow p-6">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-white rounded-xl p-6 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
           <div>
-            <h3 class="text-md font-semibold text-gray-800">Sales Analytics</h3>
-            <p class="text-xs text-gray-500">Track your sales performance</p>
-          </div>
-          <button onclick="window.refreshSales()" class="text-xs text-indigo-600 hover:text-indigo-800">
-            Refresh
-          </button>
-        </div>
-
-        <div id="sales-analytics-content">
-          <div class="flex items-center justify-center py-8">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-            <span class="ml-2 text-sm text-gray-600">Loading sales data...</span>
+            <p class="text-sm text-gallery-500">Total Sales</p>
+            <p id="stat-total-sales" class="text-2xl font-display font-semibold text-gallery-900">0</p>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- My Paintings section -->
-      <section class="bg-white rounded-2xl shadow p-6">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-white rounded-xl p-6 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-accent/10 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+          </div>
           <div>
-            <h3 class="text-md font-semibold text-gray-800">My Paintings</h3>
-            <p class="text-xs text-gray-500">
-              Manage your artworks available in the marketplace.
-            </p>
+            <p class="text-sm text-gallery-500">Earnings</p>
+            <p id="stat-total-earnings" class="text-2xl font-display font-semibold text-gallery-900">KSH 0</p>
           </div>
-          <button
-            id="toggle-new-painting-form"
-            class="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            + Add new painting
-          </button>
         </div>
+      </div>
 
-        <!-- New painting form (toggle visibility) -->
-        <div id="new-painting-form-wrap" class="mb-6 hidden">
-          <form id="new-painting-form" class="space-y-3 border rounded-lg p-4 bg-gray-50">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label for="np-title" class="block text-sm text-gray-700 mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  id="np-title"
-                  name="title"
-                  required
-                  class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                />
-              </div>
-
-              <div>
-                <label for="np-price" class="block text-sm text-gray-700 mb-1">
-                  Price (Ksh)
-                </label>
-                <input
-                  type="number"
-                  id="np-price"
-                  name="price"
-                  min="0"
-                  step="0.01"
-                  required
-                  class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label for="np-category" class="block text-sm text-gray-700 mb-1">
-                  Category
-                </label>
-                <select
-                  id="np-category"
-                  name="category_id"
-                  class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white"
-                >
-                  <option value="">Select category (optional)</option>
-                </select>
-              </div>
-
-              <div>
-                <label for="np-image" class="block text-sm text-gray-700 mb-1">
-                  Painting image
-                </label>
-                <input
-                  type="file"
-                  id="np-image"
-                  name="image"
-                  accept="image/*"
-                  required
-                  class="text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label for="np-description" class="block text-sm text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                id="np-description"
-                name="description"
-                rows="3"
-                class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              ></textarea>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label for="np-materials" class="block text-sm text-gray-700 mb-1">
-                  Materials Used
-                </label>
-                <input
-                  type="text"
-                  id="np-materials"
-                  name="materials"
-                  placeholder="e.g., Acrylic on Canvas"
-                  class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  required
-                />
-              </div>
-
-              <div>
-                <label for="np-location" class="block text-sm text-gray-700 mb-1">
-                  Location Created
-                </label>
-                <input
-                  type="text"
-                  id="np-location"
-                  name="location"
-                  placeholder="e.g., Nairobi, Kenya"
-                  class="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-                  value="Kenya"
-                />
-              </div>
-            </div>
-            
-            <button
-              type="submit"
-              class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700"
-            >
-              Create painting
-            </button>
-          </form>
+      <div class="bg-white rounded-xl p-6 border border-gallery-100 hover:shadow-md transition">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <div>
+            <p class="text-sm text-gallery-500">Certified</p>
+            <p id="stat-certified" class="text-2xl font-display font-semibold text-gallery-900">0</p>
+          </div>
         </div>
-
-        <!-- Paintings list -->
-        <div id="artist-paintings-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <!-- JS will inject painting cards here -->
-        </div>
-
-        <p id="artist-paintings-message" class="text-xs text-gray-500 text-center mt-4 hidden"></p>
-      </section>
+      </div>
     </div>
+
+    <!-- Earnings Section -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gallery-100 p-6 animate-fade-in" style="animation-delay: 0.2s">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="font-display text-xl text-gallery-900">Earnings & Payouts</h3>
+        <button onclick="window.refreshEarnings?.()" class="text-sm text-accent hover:text-accent-dark transition">
+          Refresh
+        </button>
+      </div>
+      <div id="earnings-content">
+        <div class="flex justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sales Analytics -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gallery-100 p-6 animate-fade-in" style="animation-delay: 0.3s">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="font-display text-xl text-gallery-900">Sales Analytics</h3>
+        <button onclick="window.refreshSales?.()" class="text-sm text-accent hover:text-accent-dark transition">
+          Refresh
+        </button>
+      </div>
+      <div id="sales-analytics-content">
+        <div class="flex justify-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- My Artworks -->
+    <section class="bg-white rounded-2xl shadow-sm border border-gallery-100 p-6 animate-fade-in" style="animation-delay: 0.4s">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="font-display text-xl text-gallery-900">My Artworks</h3>
+          <p class="text-sm text-gallery-500 mt-1">Manage your collection</p>
+        </div>
+        <button id="toggle-new-painting-form" 
+          class="px-4 py-2 bg-accent text-white rounded-lg hover:bg-accent-dark transition font-medium flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+          </svg>
+          Add Artwork
+        </button>
+      </div>
+
+      <!-- New Painting Form -->
+      <div id="new-painting-form-wrap" class="mb-6 hidden">
+        <form id="new-painting-form" class="bg-gallery-50 rounded-xl p-6 space-y-4 border border-gallery-200 animate-slide-up">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Title *</label>
+              <input type="text" id="np-title" name="title" required 
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Price (KSH) *</label>
+              <input type="number" id="np-price" name="price" min="0" step="0.01" required 
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Category</label>
+              <select id="np-category" name="category_id" 
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent bg-white transition">
+                <option value="">Select category</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Image *</label>
+              <input type="file" id="np-image" name="image" accept="image/*" required 
+                class="block w-full text-sm text-gallery-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-accent/10 file:text-accent hover:file:bg-accent/20 transition"/>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Materials *</label>
+              <input type="text" id="np-materials" name="materials" required 
+                placeholder="e.g., Acrylic on Canvas"
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"/>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Location</label>
+              <input type="text" id="np-location" name="location" value="Kenya"
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"/>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gallery-700 mb-2">Description</label>
+            <textarea id="np-description" name="description" rows="3"
+              class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg focus:ring-2 focus:ring-accent/20 focus:border-accent transition"></textarea>
+          </div>
+
+          <button type="submit" 
+            class="px-6 py-3 bg-gallery-900 text-white rounded-lg hover:bg-accent transition font-medium">
+            Create Artwork
+          </button>
+        </form>
+      </div>
+
+      <!-- Artworks Grid -->
+      <div id="artist-paintings-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <!-- JS will populate -->
+      </div>
+      <p id="artist-paintings-message" class="text-center text-gallery-500 mt-6 hidden"></p>
+    </section>
+
   </main>
 
-  <!-- Script -->
+  <!-- Footer -->
+  <footer class="bg-gallery-900 text-white py-8 mt-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+            <span class="text-white font-display text-sm">S</span>
+          </div>
+          <span class="font-display text-lg">SANAA</span>
+        </div>
+        <p class="text-sm text-gallery-500">© 2024 SANAA. Empowering artists worldwide.</p>
+      </div>
+    </div>
+  </footer>
+
   <script type="module" src="./js/artist-dashboard.js"></script>
 </body>
 </html>

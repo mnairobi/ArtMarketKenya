@@ -139,7 +139,7 @@ class DeliveryService:
             subject=f"Order #{delivery.order_id} - Delivery Update",
             recipients=[buyer.email],
             body=f"""
-            Dear {buyer.name},
+            Dear {buyer.username},
             
             {status_messages.get(delivery.status, 'Your delivery status has been updated.')}
             
@@ -172,7 +172,7 @@ class DeliveryService:
             subject=f"Your Order #{delivery.order_id} Has Shipped!",
             recipients=[buyer.email],
             body=f"""
-            Dear {buyer.name},
+            Dear {buyer.username},
             
             Great news! Your order has been shipped.
             

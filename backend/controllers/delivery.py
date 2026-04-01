@@ -106,7 +106,7 @@ class AllDeliveriesResource(Resource):
                 if delivery.order.buyer:
                     d['buyer'] = {
                         'id': delivery.order.buyer.id,
-                        'name': delivery.order.buyer.name,
+                        'name': delivery.order.buyer.username,
                         'email': delivery.order.buyer.email
                     }
             result.append(d)

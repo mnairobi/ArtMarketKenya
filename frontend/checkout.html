@@ -2,233 +2,439 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Art Marketplace – Checkout</title>
+  <title>Checkout — SANAA</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind via CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            'display': ['Playfair Display', 'serif'],
+            'sans': ['Inter', 'sans-serif'],
+          },
+          colors: {
+            'gallery': {
+              50: '#fafafa',
+              100: '#f5f5f5',
+              200: '#e5e5e5',
+              300: '#d4d4d4',
+              400: '#a3a3a3',
+              500: '#737373',
+              600: '#525252',
+              700: '#404040',
+              800: '#262626',
+              900: '#171717',
+              950: '#0a0a0a',
+            },
+            'accent': {
+              DEFAULT: '#c9a962',
+              light: '#dfc88a',
+              dark: '#a88b3d',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.5s ease-out',
+            'slide-up': 'slideUp 0.6s ease-out',
+            'scale-in': 'scaleIn 0.3s ease-out',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(20px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            },
+            scaleIn: {
+              '0%': { opacity: '0', transform: 'scale(0.95)' },
+              '100%': { opacity: '1', transform: 'scale(1)' },
+            },
+          },
+        },
+      },
+    }
+  </script>
+
+  <style>
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f5f5f5;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d4d4d4;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a3a3a3;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+<body class="bg-gallery-50 text-gallery-900 min-h-screen font-sans antialiased flex flex-col">
 
   <!-- Header -->
-  <header class="bg-white shadow">
-    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-      <a href="./index.html" class="text-xl font-bold text-indigo-700">
-        Art<span class="text-gray-900">Market</span>
-      </a>
-
-      <nav class="flex gap-4 text-sm">
-        <a href="./index.html" class="text-gray-600 hover:text-indigo-600">Home</a>
-        <a href="./cart.html" class="text-gray-600 hover:text-indigo-600">My Cart</a>
-        <a href="./login.html" class="text-gray-600 hover:text-indigo-600">Logout</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="flex-1">
-    <section class="max-w-6xl mx-auto px-4 py-8">
-      <h1 class="text-2xl font-bold mb-2">Checkout</h1>
-      <p class="text-sm text-gray-500 mb-6">
-        Confirm your delivery details and place your order.
-      </p>
-
-      <div id="checkout-message" class="mb-4 text-sm hidden"></div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <!-- LEFT: Address + Delivery -->
-        <div class="md:col-span-2 space-y-6">
-          <!-- Addresses -->
-          <div class="bg-white rounded-lg shadow-sm p-4">
-            <h2 class="text-lg font-semibold mb-3">Delivery address</h2>
-
-            <!-- Existing addresses -->
-            <div id="address-list" class="space-y-3">
-              <!-- JS will inject radio buttons here -->
-            </div>
-
-            <button
-              id="toggle-new-address"
-              type="button"
-              class="mt-3 text-sm text-indigo-600 hover:underline"
-            >
-              + Add new address
-            </button>
-
-<form id="new-address-form" class="mt-4 space-y-3 hidden">
-  <!-- County -->
-  <div>
-    <label class="block text-xs font-medium text-gray-600 mb-1">County</label>
-    <select
-      id="county-select"
-      name="county"
-      required
-      class="w-full border rounded px-3 py-2 text-sm"
-    >
-      <!-- JS will populate options: Nairobi etc -->
-    </select>
-  </div>
-
-  <!-- Town / Area -->
-  <div>
-    <label class="block text-xs font-medium text-gray-600 mb-1">Town / Area</label>
-    <select
-      id="town-select"
-      name="town"
-      required
-      class="w-full border rounded px-3 py-2 text-sm"
-    >
-      <!-- JS will populate based on county -->
-    </select>
-  </div>
-
-  <!-- Street / Estate -->
-  <div>
-    <label class="block text-xs font-medium text-gray-600 mb-1">Street / Estate</label>
-    <select
-      id="street-select"
-      name="street"
-      required
-      class="w-full border rounded px-3 py-2 text-sm"
-    >
-      <!-- JS will populate based on town -->
-    </select>
-  </div>
-
-  <div class="flex justify-end gap-2 pt-2">
-    <button
-      type="button"
-      id="cancel-new-address"
-      class="px-3 py-1.5 text-xs rounded border text-gray-600"
-    >
-      Cancel
-    </button>
-    <button
-      type="submit"
-      class="px-4 py-1.5 text-xs rounded bg-indigo-600 text-white hover:bg-indigo-700"
-    >
-      Save address
-    </button>
-  </div>
-</form>
+  <header class="bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gallery-100">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 lg:h-20">
+        
+        <!-- Logo -->
+        <a href="./index.html" class="flex items-center gap-2 group">
+          <div class="w-10 h-10 bg-gallery-900 rounded-full flex items-center justify-center group-hover:bg-accent transition-colors duration-300">
+            <span class="text-white font-display text-lg">S</span>
           </div>
+          <span class="font-display text-2xl tracking-tight hidden sm:block">
+            SANAA
+          </span>
+        </a>
 
-          <!-- Delivery info (shipping) -->
-          <div class="bg-white rounded-lg shadow-sm p-4">
-            <h2 class="text-lg font-semibold mb-3">Delivery</h2>
-            <p class="text-sm text-gray-600">
-              Once you select / add an address, we will calculate delivery cost automatically.
-            </p>
-
-            <div class="mt-3 text-sm space-y-1">
-              <div class="flex justify-between">
-                <span class="text-gray-600">Shipping fee</span>
-                <span id="shipping-fee" class="font-medium">Ksh 0</span>
-              </div>
-              <p id="delivery-note" class="text-xs text-gray-500"></p>
-            </div>
+        <!-- Checkout Steps (Desktop) -->
+        <div class="hidden lg:flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-accent text-white rounded-full flex items-center justify-center text-sm font-semibold">1</div>
+            <span class="text-sm font-medium text-gallery-900">Checkout</span>
+          </div>
+          <svg class="w-4 h-4 text-gallery-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+          <div class="flex items-center gap-2 opacity-40">
+            <div class="w-8 h-8 bg-gallery-200 text-gallery-500 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
+            <span class="text-sm text-gallery-500">Payment</span>
+          </div>
+          <svg class="w-4 h-4 text-gallery-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+          <div class="flex items-center gap-2 opacity-40">
+            <div class="w-8 h-8 bg-gallery-200 text-gallery-500 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
+            <span class="text-sm text-gallery-500">Confirmation</span>
           </div>
         </div>
 
-        <!-- RIGHT: Order summary -->
-        <aside class="md:col-span-1">
-          <div class="bg-white rounded-lg shadow-sm p-4 space-y-4">
-            <h2 class="text-lg font-semibold">Order summary</h2>
+        <!-- Nav -->
+        <nav class="flex items-center gap-4 text-sm">
+          <a href="./index.html" class="text-gallery-600 hover:text-gallery-900 transition hidden sm:inline">Home</a>
+          <a href="./cart.html" class="text-gallery-600 hover:text-gallery-900 transition flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+            <span class="hidden sm:inline">Cart</span>
+          </a>
+        </nav>
+      </div>
+    </div>
+  </header>
 
-            <!-- Items -->
-            <div id="cart-items-list" class="max-h-64 overflow-y-auto border rounded p-2 text-sm space-y-2">
+  <!-- Main Content -->
+  <main class="flex-1 py-8 lg:py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Page Header -->
+      <div class="mb-8 animate-fade-in">
+        <h1 class="font-display text-3xl lg:text-4xl text-gallery-900 mb-2">Secure Checkout</h1>
+        <p class="text-gallery-500">Complete your order with just a few more details</p>
+      </div>
+
+      <!-- Message Area -->
+      <div id="checkout-message" class="mb-6 hidden">
+        <!-- JS will populate messages here -->
+      </div>
+
+      <!-- Main Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- LEFT: Delivery Details -->
+        <div class="lg:col-span-2 space-y-6">
+          
+          <!-- Delivery Address Card -->
+          <div class="bg-white rounded-2xl shadow-sm p-6">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+              </div>
+              <h2 class="font-display text-xl text-gallery-900">Delivery Address</h2>
+            </div>
+
+            <!-- Existing Addresses -->
+            <div id="address-list" class="space-y-3 mb-4">
+              <!-- JS will inject address radio buttons here -->
+            </div>
+
+            <!-- Add New Address Toggle -->
+            <button
+              id="toggle-new-address"
+              type="button"
+              class="flex items-center gap-2 text-sm text-accent hover:text-accent-dark transition font-medium"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+              </svg>
+              Add new address
+            </button>
+
+            <!-- New Address Form -->
+            <form id="new-address-form" class="mt-5 space-y-4 hidden animate-slide-up">
+              <div class="p-4 bg-gallery-50 rounded-xl border border-gallery-200">
+                
+                <!-- County -->
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gallery-700 mb-2">County</label>
+                  <select
+                    id="county-select"
+                    name="county"
+                    required
+                    class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
+                  >
+                    <!-- JS will populate -->
+                  </select>
+                </div>
+
+                <!-- Town / Area -->
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gallery-700 mb-2">Town / Area</label>
+                  <select
+                    id="town-select"
+                    name="town"
+                    required
+                    class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
+                  >
+                    <!-- JS will populate -->
+                  </select>
+                </div>
+
+                <!-- Street / Estate -->
+                <div class="mb-4">
+                  <label class="block text-sm font-medium text-gallery-700 mb-2">Street / Estate</label>
+                  <select
+                    id="street-select"
+                    name="street"
+                    required
+                    class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
+                  >
+                    <!-- JS will populate -->
+                  </select>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex justify-end gap-3 pt-3 border-t border-gallery-200">
+                  <button
+                    type="button"
+                    id="cancel-new-address"
+                    class="px-4 py-2 text-sm rounded-lg border border-gallery-200 text-gallery-600 hover:bg-gallery-50 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    class="px-5 py-2 text-sm rounded-lg bg-gallery-900 text-white hover:bg-accent transition font-medium"
+                  >
+                    Save address
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- Delivery Info Card -->
+          <div class="bg-white rounded-2xl shadow-sm p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                </svg>
+              </div>
+              <h2 class="font-display text-xl text-gallery-900">Delivery Details</h2>
+            </div>
+
+            <p class="text-sm text-gallery-600 mb-4">
+              Select or add an address to calculate shipping cost
+            </p>
+
+            <div class="bg-gallery-50 rounded-xl p-4 space-y-2">
+              <div class="flex justify-between items-center">
+                <span class="text-sm text-gallery-600">Shipping fee</span>
+                <span id="shipping-fee" class="text-lg font-semibold text-gallery-900">Ksh 0</span>
+              </div>
+              <p id="delivery-note" class="text-xs text-gallery-500">
+                Free shipping on orders over Ksh 50,000
+              </p>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: Order Summary -->
+        <aside class="lg:col-span-1">
+          <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-28">
+            <h2 class="font-display text-xl text-gallery-900 mb-5 pb-4 border-b border-gallery-100">
+              Order Summary
+            </h2>
+
+            <!-- Cart Items -->
+            <div id="cart-items-list" class="max-h-64 overflow-y-auto mb-5">
               <!-- JS will render cart items here -->
             </div>
 
             <!-- Totals -->
-            <div class="border-t pt-3 space-y-1 text-sm">
-              <div class="flex justify-between">
-                <span class="text-gray-600">Subtotal</span>
-                <span id="subtotal" class="font-medium">Ksh 0</span>
+            <div class="space-y-3 pb-4 border-b border-gallery-100">
+              <div class="flex justify-between text-sm">
+                <span class="text-gallery-600">Subtotal</span>
+                <span id="subtotal" class="font-medium text-gallery-900">Ksh 0</span>
               </div>
-              <div class="flex justify-between">
-                <span class="text-gray-600">Shipping</span>
-                <span id="shipping-fee-summary" class="font-medium">Ksh 0</span>
-              </div>
-              <div class="flex justify-between text-base font-semibold pt-2 border-t">
-                <span>Total</span>
-                <span id="total">Ksh 0</span>
+              <div class="flex justify-between text-sm">
+                <span class="text-gallery-600">Shipping</span>
+                <span id="shipping-fee-summary" class="font-medium text-gallery-900">Ksh 0</span>
               </div>
             </div>
 
-            <!-- Payment method -->
-            <div class="pt-2">
-              <label class="block text-xs font-medium text-gray-600 mb-1">Payment method</label>
+            <!-- Grand Total -->
+            <div class="py-4 mb-5">
+              <div class="flex justify-between items-center">
+                <span class="font-display text-lg text-gallery-900">Total</span>
+                <span id="total" class="font-display text-2xl text-gallery-900">Ksh 0</span>
+              </div>
+            </div>
+
+            <!-- Payment Method -->
+            <div class="mb-5">
+              <label class="block text-sm font-medium text-gallery-700 mb-2">Payment Method</label>
               <select
                 id="payment-method"
-                class="w-full border rounded px-2 py-1.5 text-sm"
+                class="w-full px-4 py-2.5 border border-gallery-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition"
               >
-                <option value="mpesa">M‑Pesa</option>
-                <option value="cod">Cash on delivery</option>
+                <option value="mpesa">M-Pesa</option>
+                <option value="cod">Cash on Delivery</option>
               </select>
             </div>
 
+            <!-- Place Order Button -->
             <button
               id="place-order-btn"
-              class="w-full mt-3 bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              class="w-full bg-gallery-900 text-white py-4 rounded-xl font-medium text-base hover:bg-accent transition-colors disabled:bg-gallery-300 disabled:cursor-not-allowed group flex items-center justify-center gap-2"
             >
-              Place order
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+              </svg>
+              Place Order Securely
             </button>
+
+            <!-- Trust Badges -->
+            <div class="mt-5 pt-5 border-t border-gallery-100">
+              <div class="grid grid-cols-2 gap-3 text-xs text-gallery-500">
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                  </svg>
+                  <span>SSL Encrypted</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                  </svg>
+                  <span>Verified</span>
+                </div>
+              </div>
+            </div>
           </div>
         </aside>
       </div>
-    </section>
-    <!-- M‑Pesa Phone Modal -->
-<div
-  id="mpesa-modal"
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden"
->
-  <div class="bg-white rounded-lg shadow-lg w-full max-w-sm p-5">
-    <h3 class="text-lg font-semibold mb-1">Pay with M‑Pesa</h3>
-    <p class="text-xs text-gray-500 mb-3">
-      Enter the M‑Pesa number where you want to receive the STK push.
-    </p>
 
-    <label
-      for="mpesa-modal-phone"
-      class="block text-xs font-medium text-gray-600 mb-1"
-    >
-      Phone number
-    </label>
-    <input
-      id="mpesa-modal-phone"
-      type="tel"
-      placeholder="e.g. 2547XXXXXXXX"
-      class="w-full border rounded px-3 py-2 text-sm mb-2"
-    />
-
-    <p
-      id="mpesa-modal-error"
-      class="text-xs text-red-600 mb-2 hidden"
-    ></p>
-
-    <div class="flex justify-end gap-2 mt-3">
-      <button
-        id="mpesa-modal-cancel"
-        type="button"
-        class="px-3 py-1.5 text-xs border rounded text-gray-600 hover:bg-gray-50"
-      >
-        Cancel
-      </button>
-      <button
-        id="mpesa-modal-proceed"
-        type="button"
-        class="px-4 py-1.5 text-xs rounded bg-green-600 text-white hover:bg-green-700"
-      >
-        Proceed
-      </button>
     </div>
-  </div>
-</div>
   </main>
 
-  <!-- Optional floating cart (for consistency) -->
-  <a href="./cart.html"
-     class="fixed bottom-6 right-6 bg-green-600 text-white px-5 py-3 rounded-full shadow-lg flex items-center gap-2 hover:bg-green-700 transition">
-    🛒 Cart
-  </a>
+  <!-- Footer -->
+  <footer class="bg-gallery-900 text-white py-8 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
+            <span class="text-white font-display text-sm">S</span>
+          </div>
+          <span class="font-display text-lg">SANAA</span>
+        </div>
+        <p class="text-sm text-gallery-500">© 2024 SANAA. Secure checkout powered by M-Pesa</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- M-Pesa Phone Modal -->
+  <div
+    id="mpesa-modal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4"
+  >
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-scale-in">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+          <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-semibold text-gallery-900">Pay with M-Pesa</h3>
+          <p class="text-xs text-gallery-500">Enter your mobile number</p>
+        </div>
+      </div>
+
+      <!-- Phone Input -->
+      <div class="mb-4">
+        <label for="mpesa-modal-phone" class="block text-sm font-medium text-gallery-700 mb-2">
+          M-Pesa Phone Number
+        </label>
+        <input
+          id="mpesa-modal-phone"
+          type="tel"
+          placeholder="e.g. 254712345678"
+          class="w-full px-4 py-3 border border-gallery-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition"
+        />
+      </div>
+
+      <!-- Error Message -->
+      <p id="mpesa-modal-error" class="text-sm text-red-600 mb-3 hidden"></p>
+
+      <!-- Info -->
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+        <div class="flex gap-2">
+          <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <p class="text-xs text-blue-700">
+            You will receive an STK push notification on your phone. Enter your M-Pesa PIN to complete payment.
+          </p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex gap-3">
+        <button
+          id="mpesa-modal-cancel"
+          type="button"
+          class="flex-1 px-4 py-3 border border-gallery-200 rounded-lg text-gallery-700 font-medium hover:bg-gallery-50 transition"
+        >
+          Cancel
+        </button>
+        <button
+          id="mpesa-modal-proceed"
+          type="button"
+          class="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition"
+        >
+          Proceed
+        </button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="./js/checkout.js"></script>
 </body>
