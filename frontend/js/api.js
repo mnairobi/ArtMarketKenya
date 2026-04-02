@@ -1,6 +1,20 @@
+JavaScript
+
 // js/api.js
 
-export const API_BASE_URL = "http://localhost:5000";
+// ──────────────────────────────────────────────
+// ENVIRONMENT DETECTION
+// ──────────────────────────────────────────────
+const isProduction = window.location.hostname !== 'localhost' && 
+                     window.location.hostname !== '127.0.0.1';
+
+export const API_BASE_URL = isProduction 
+    ? 'https://artmarketkenya.onrender.com'  // Production backend
+    : 'http://localhost:5000';                // Local development
+
+// Log current environment (helpful for debugging)
+console.log('🌐 Environment:', isProduction ? 'PRODUCTION' : 'DEVELOPMENT');
+console.log('🔗 API Base URL:', API_BASE_URL);
 
 // ──────────────────────────────────────────────
 // CORE REQUEST HELPER
