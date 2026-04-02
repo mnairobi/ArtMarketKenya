@@ -75,12 +75,11 @@ class DatabaseSeedResource(Resource):
             if User.query.first():
                 return {"message": "Database already seeded"}, 200
             
-            # Create admin
+            # Create admin user
             admin = User(
                 username="M'Nairobi",
                 email="klausofficial254@gmail.com",
-                role="admin",
-                is_active=True
+                role="admin"
             )
             admin.set_password("Klaus123!")
             db.session.add(admin)
@@ -89,53 +88,118 @@ class DatabaseSeedResource(Resource):
             artist_user = User(
                 username="Nkonge jr",
                 email="nkongejr777@gmail.com",
-                role="artist",
-                is_active=True
+                role="artist"
             )
             artist_user.set_password("klaus")
             db.session.add(artist_user)
+            
+            # Create buyer user for testing
+            buyer_user = User(
+                username="TestBuyer",
+                email="buyer@test.com",
+                role="buyer"
+            )
+            buyer_user.set_password("buyer123")
+            db.session.add(buyer_user)
+            
             db.session.commit()
             
             # Create artist profile
             artist = Artist(
                 user_id=artist_user.id,
-                bio="Traditional Kenyan artist",
+                bio="Traditional Kenyan artist specializing in landscapes and cultural art",
                 phone="+254712345678",
-                location="Nairobi"
+                location="Nairobi, Kenya"
             )
             db.session.add(artist)
             
-            # Create category
-            category = Category(
-                name="Landscape",
-                description="Kenyan landscapes"
-            )
-            db.session.add(category)
+            # Create multiple categories
+            categories_data = [
+                {"name": "Landscape", "description": "Kenyan landscapes and natural scenery"},
+                {"name": "Portrait", "description": "Portrait paintings of people and culture"},
+                {"name": "Abstract", "description": "Abstract and contemporary art"},
+                {"name": "Wildlife", "description": "African wildlife and safari scenes"},
+            ]
+            
+            categories = []
+            for cat_data in categories_data:
+                category = Category(**cat_data)
+                db.session.add(category)
+                categories.append(category)
+            
             db.session.commit()
             
-            # Create sample painting
-            painting = Painting(
-                artist_id=artist.id,
-                category_id=category.id,
-                title="Maasai Mara Sunset",
-                description="Beautiful sunset",
-                price=15000.00,
-                status="approved",
-                image_url="https://via.placeholder.com/400x300",
-                materials="Oil on Canvas",
-                location="Nairobi",
-                is_available=True,
-                is_sold=False
-            )
-            db.session.add(painting)
+            # Create sample paintings
+            paintings_data = [
+                {
+                    "title": "Maasai Mara Sunset",
+                    "description": "Beautiful sunset over the iconic Maasai Mara National Reserve",
+                    "price": 15000.00,
+                    "category_id": categories[0].id,
+                    "image_url": "https://images.unsplash.com/photo-1516426122078-c23e76319801?w=400",
+                    "materials": "Oil on Canvas",
+                    "location": "Nairobi"
+                },
+                {
+                    "title": "Mount Kenya Peak",
+                    "description": "Majestic view of Mount Kenya's snow-capped peak",
+                    "price": 25000.00,
+                    "category_id": categories[0].id,
+                    "image_url": "https://images.unsplash.com/photo-1523805009345-7448845a9e53?w=400",
+                    "materials": "Acrylic on Canvas",
+                    "location": "Nyeri"
+                },
+                {
+                    "title": "Maasai Warrior",
+                    "description": "Traditional Maasai warrior in ceremonial attire",
+                    "price": 20000.00,
+                    "category_id": categories[1].id,
+                    "image_url": "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=400",
+                    "materials": "Oil on Canvas",
+                    "location": "Nairobi"
+                },
+                {
+                    "title": "Elephant Family",
+                    "description": "Elephant herd walking through the savannah",
+                    "price": 18000.00,
+                    "category_id": categories[3].id,
+                    "image_url": "https://images.unsplash.com/photo-1564760055775-d63b17a55c44?w=400",
+                    "materials": "Watercolor",
+                    "location": "Nairobi"
+                }
+            ]
+            
+            for painting_data in paintings_data:
+                painting = Painting(
+                    artist_id=artist.id,
+                    status="approved",
+                    is_available=True,
+                    is_sold=False,
+                    **painting_data
+                )
+                db.session.add(painting)
+            
             db.session.commit()
             
             return {
-                "message": "Database seeded successfully",
-                "admin_email": "admin@artmarket.com",
-                "admin_password": "Admin123!",
-                "artist_email": "wanjiku@example.com",
-                "artist_password": "Artist123!"
+                "message": "Database seeded successfully! 🎨",
+                "users_created": 3,
+                "categories_created": len(categories),
+                "paintings_created": len(paintings_data),
+                "login_credentials": {
+                    "admin": {
+                        "email": "klausofficial254@gmail.com",
+                        "password": "Klaus123!"
+                    },
+                    "artist": {
+                        "email": "nkongejr777@gmail.com",
+                        "password": "klaus"
+                    },
+                    "buyer": {
+                        "email": "buyer@test.com",
+                        "password": "buyer123"
+                    }
+                }
             }, 201
             
         except Exception as e:
