@@ -40,7 +40,7 @@ def register_routes(app):
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        os.getenv("FRONTEND_URL", "http://localhost:5173")  # Production frontend
+        os.getenv("FRONTEND_URL", "https://sanaa-ke.vercel.app")  # Production frontend
     ]
 
     CORS(app, 
