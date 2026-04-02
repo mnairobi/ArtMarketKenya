@@ -71,11 +71,29 @@ class PaintingCreateResource(Resource):
 
 
 
+# class PaintingListResource(Resource):
+#     def get(self):
+#         paintings = PaintingService.get_all_paintings()
+#         return paintings, 200
+# # controllers/painting.py
+
 class PaintingListResource(Resource):
     def get(self):
-        paintings = PaintingService.get_all_paintings()
-        return paintings, 200
-
+        """Get all available paintings (excludes sold items)"""
+        show_all = request.args.get('show_all', 'false').lower() == 'true'
+        include_sold = request.args.get('include_sold', 'false').lower() == 'true'
+        
+        query = Painting.query
+        
+        # By default, only show available paintings
+        if not show_all and not include_sold:
+            query = query.filter(
+                Painting.is_available == True,
+                Painting.is_sold == False
+            )
+        
+        paintings = query.order_by(Painting.created_at.desc()).all()
+        return [p.to_dict() for p in paintings], 200
 
 class PaintingResource(Resource):
     def get(self, painting_id):

@@ -23,6 +23,11 @@ class Painting(db.Model):
 
     created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
     updated_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+    
+        # Availability
+    is_available = db.Column(db.Boolean, default=True)
+    is_sold = db.Column(db.Boolean, default=False)
+    
 
     artist = db.relationship("Artist", back_populates="paintings")
     category = db.relationship("Category", back_populates="paintings")
@@ -32,6 +37,7 @@ class Painting(db.Model):
     items = db.relationship("CartItem", back_populates="painting")
 
     def to_dict(self):
+        stock_qty = self.stock.quantity if self.stock else 0
         return {
             "id": self.id,
             "artist_id": self.artist_id,
@@ -47,5 +53,8 @@ class Painting(db.Model):
             "location": self.location,
             # 👇 INCLUDE NEW FIELDS IN DICT 👇
             "ipfs_cid": self.ipfs_cid,
-            "qr_code_url": self.qr_code_url
+            "qr_code_url": self.qr_code_url,
+            "is_available": self.is_available,
+            "is_sold": self.is_sold,
+            "stock_quantity": stock_qty
         }
