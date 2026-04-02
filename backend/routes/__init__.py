@@ -27,6 +27,8 @@ from controllers.certificate import CertificateIssueResource, CertificateVerifyR
 from controllers.passwordReset import ForgotPasswordResource,ResetPasswordResource,ValidateResetTokenResource
 from controllers.admin import CreateAdminResource,PromoteToAdminResource,UserSuspendResource,UserActivateResource
 
+from controllers.setup import DatabaseSetupResource, DatabaseSeedResource
+
 
 
 from flask_cors import CORS
@@ -192,3 +194,7 @@ def register_routes(app):
         # Review routes
     api.add_resource(ReviewListResource, '/reviews')
     api.add_resource(ReviewResource, '/reviews/<int:review_id>')
+
+        # Setup routes (temporary - remove after use)
+    api.add_resource(DatabaseSetupResource, '/setup/database')
+    api.add_resource(DatabaseSeedResource, '/setup/seed')
