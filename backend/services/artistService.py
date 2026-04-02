@@ -8,8 +8,12 @@ class ArtistService:
 
     @staticmethod
     def create_artist(user_id, bio, profile_picture=None, social_links=None):
+
+         # Ensure user_id is integer
+        user_id = int(user_id)  # ← ADD THIS
         # Check if user exists
         user = User.query.get(user_id)
+        
         if not user:
             return {"message": "User does not exist"}, 404
 

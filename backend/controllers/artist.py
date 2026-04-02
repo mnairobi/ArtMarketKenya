@@ -14,7 +14,8 @@ class ArtistResource(Resource):
 
     # CREATE artist profile
     def post(self):
-        user_id = request.form.get("user_id")
+        # user_id = request.form.get("user_id")
+        user_id = int(request.form.get("user_id"))  # ← ADD int() HERE
         bio = request.form.get("bio")
         social_links = request.form.get("social_links")
         image = request.files.get("profile_picture")
