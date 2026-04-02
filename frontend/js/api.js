@@ -125,6 +125,33 @@ export function getAllCategories() {
   return apiRequest("/categories");
 }
 
+export function getCategory(categoryId) {
+  return apiRequest(`/categories/${categoryId}`);
+}
+
+export function createCategory(data, token) {
+  return apiRequest("/categories", {
+    method: "POST",
+    token,
+    body: data,
+  });
+}
+
+export function updateCategory(categoryId, data, token) {
+  return apiRequest(`/categories/${categoryId}`, {
+    method: "PUT",
+    token,
+    body: data,
+  });
+}
+
+export function deleteCategory(categoryId, token) {
+  return apiRequest(`/categories/${categoryId}`, {
+    method: "DELETE",
+    token,
+  });
+}
+
 // ──────────────────────────────────────────────
 // ARTIST PROFILES
 // ──────────────────────────────────────────────

@@ -390,6 +390,265 @@
             </table>
           </div>
         </div>
+        <!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- CATEGORIES SECTION -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<section id="categories-section" class="hidden">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
+    <div>
+      <h2 class="text-2xl font-bold text-gray-800">Categories</h2>
+      <p class="text-gray-500 mt-1">Manage painting categories</p>
+    </div>
+    <button 
+      onclick="openCategoryModal()" 
+      class="mt-4 md:mt-0 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+    >
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      Add Category
+    </button>
+  </div>
+
+  <!-- Categories Stats -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div class="flex items-center gap-3">
+        <div class="p-3 bg-purple-100 rounded-lg">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-gray-500">Total Categories</p>
+          <p id="total-categories" class="text-2xl font-bold text-gray-800">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Categories Table -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div class="p-4 border-b border-gray-100">
+      <h3 class="font-semibold text-gray-800">All Categories</h3>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paintings</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="categories-table-body" class="divide-y divide-gray-200">
+          <!-- Categories will be loaded here -->
+        </tbody>
+      </table>
+    </div>
+    
+    <!-- Empty State -->
+    <div id="categories-empty" class="hidden p-12 text-center">
+      <svg class="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+      </svg>
+      <h3 class="text-lg font-medium text-gray-700 mb-2">No Categories Yet</h3>
+      <p class="text-gray-500 mb-4">Create your first category to organize paintings.</p>
+      <button 
+        onclick="openCategoryModal()" 
+        class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg transition-colors"
+      >
+        Create Category
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- CREATE/EDIT CATEGORY MODAL -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div 
+  id="category-modal" 
+  class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+    <!-- Modal Header -->
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 id="category-modal-title" class="text-lg font-semibold text-gray-800">Add New Category</h3>
+      <button 
+        onclick="closeCategoryModal()" 
+        class="text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Modal Body -->
+    <form id="category-form" class="p-6 space-y-4">
+      <input type="hidden" id="category-id" value="">
+      
+      <!-- Category Name -->
+      <div>
+        <label for="category-name" class="block text-sm font-medium text-gray-700 mb-1">
+          Category Name <span class="text-red-500">*</span>
+        </label>
+        <input 
+          type="text" 
+          id="category-name" 
+          name="name"
+          required
+          placeholder="e.g., Landscape, Wildlife, Portrait"
+          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+        >
+      </div>
+
+      <!-- Category Description -->
+      <div>
+        <label for="category-description" class="block text-sm font-medium text-gray-700 mb-1">
+          Description
+        </label>
+        <textarea 
+          id="category-description" 
+          name="description"
+          rows="3"
+          placeholder="Describe what types of paintings belong in this category..."
+          class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors resize-none"
+        ></textarea>
+      </div>
+
+      <!-- Quick Templates -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">Quick Templates</label>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" onclick="fillTemplate('Landscape', 'Kenyan landscapes, mountains, savannahs, and natural scenery')" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors">Landscape</button>
+          <button type="button" onclick="fillTemplate('Wildlife', 'African wildlife, safari animals, and nature scenes')" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors">Wildlife</button>
+          <button type="button" onclick="fillTemplate('Portrait', 'Portraits of people, cultural figures, and traditional subjects')" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors">Portrait</button>
+          <button type="button" onclick="fillTemplate('Abstract', 'Contemporary abstract art and modern expressions')" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors">Abstract</button>
+          <button type="button" onclick="fillTemplate('Cultural', 'Traditional Kenyan culture, ceremonies, and heritage')" class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-sm text-gray-600 transition-colors">Cultural</button>
+        </div>
+      </div>
+
+      <!-- Error Message -->
+      <div id="category-error" class="hidden p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm"></div>
+
+      <!-- Success Message -->
+      <div id="category-success" class="hidden p-3 bg-green-50 border border-green-200 rounded-lg text-green-600 text-sm"></div>
+    </form>
+
+    <!-- Modal Footer -->
+    <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
+      <button 
+        type="button"
+        onclick="closeCategoryModal()" 
+        class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors"
+      >
+        Cancel
+      </button>
+      <button 
+        type="button"
+        onclick="saveCategory()"
+        id="save-category-btn"
+        class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors flex items-center gap-2"
+      >
+        <span id="save-category-text">Save Category</span>
+        <svg id="save-category-spinner" class="hidden w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<!-- BULK CREATE CATEGORIES MODAL -->
+<!-- ══════════════════════════════════════════════════════════════════ -->
+<div 
+  id="bulk-category-modal" 
+  class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+>
+  <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-800">Create Multiple Categories</h3>
+      <button onclick="closeBulkModal()" class="text-gray-400 hover:text-gray-600">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="p-6">
+      <p class="text-gray-600 mb-4">Create all 10 recommended categories at once:</p>
+      
+      <div class="space-y-2 max-h-60 overflow-y-auto mb-4">
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-landscape" checked class="rounded text-amber-600">
+          <label for="cat-landscape" class="text-sm">Landscape - Kenyan landscapes and natural scenery</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-wildlife" checked class="rounded text-amber-600">
+          <label for="cat-wildlife" class="text-sm">Wildlife - African wildlife and safari animals</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-portrait" checked class="rounded text-amber-600">
+          <label for="cat-portrait" class="text-sm">Portrait - Portraits of people and cultural figures</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-abstract" checked class="rounded text-amber-600">
+          <label for="cat-abstract" class="text-sm">Abstract - Contemporary abstract art</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-cultural" checked class="rounded text-amber-600">
+          <label for="cat-cultural" class="text-sm">Cultural - Traditional Kenyan culture</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-urban" checked class="rounded text-amber-600">
+          <label for="cat-urban" class="text-sm">Urban - City life and street art</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-coastal" checked class="rounded text-amber-600">
+          <label for="cat-coastal" class="text-sm">Coastal - Beach scenes and ocean views</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-figurative" checked class="rounded text-amber-600">
+          <label for="cat-figurative" class="text-sm">Figurative - Human figures and movement</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-stilllife" checked class="rounded text-amber-600">
+          <label for="cat-stilllife" class="text-sm">Still Life - Objects, fruits, flowers</label>
+        </div>
+        <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+          <input type="checkbox" id="cat-mixedmedia" checked class="rounded text-amber-600">
+          <label for="cat-mixedmedia" class="text-sm">Mixed Media - Combined materials and techniques</label>
+        </div>
+      </div>
+
+      <div id="bulk-progress" class="hidden mb-4">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="w-5 h-5 animate-spin text-amber-600" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span id="bulk-progress-text" class="text-sm text-gray-600">Creating categories...</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="bulk-progress-bar" class="bg-amber-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <div id="bulk-result" class="hidden p-3 rounded-lg text-sm"></div>
+    </div>
+
+    <div class="px-6 py-4 bg-gray-50 border-t flex justify-end gap-3">
+      <button onclick="closeBulkModal()" class="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg">Cancel</button>
+      <button onclick="createBulkCategories()" id="bulk-create-btn" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg">Create Selected</button>
+    </div>
+  </div>
+</div>
 
         <!-- Artists & Art Tab -->
         <div id="artists-tab" class="tab-content hidden">

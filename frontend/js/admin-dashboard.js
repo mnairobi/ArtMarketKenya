@@ -1,4 +1,37 @@
 // js/admin-dashboard.js
+// At the top of the file
+import { initCategoryManagement, loadCategories } from "./admin-categories.js";
+
+// In your showSection function, add handling for categories:
+function showSection(sectionName) {
+  // Hide all sections
+  document.querySelectorAll("section").forEach(s => s.classList.add("hidden"));
+  
+  // Show selected section
+  const section = document.getElementById(`${sectionName}-section`);
+  if (section) {
+    section.classList.remove("hidden");
+  }
+  
+  // Load data for specific sections
+  if (sectionName === "categories") {
+    loadCategories();
+  }
+  
+  // Update navigation active state
+  document.querySelectorAll(".nav-link").forEach(link => {
+    link.classList.remove("bg-amber-50", "text-amber-700");
+    if (link.dataset.section === sectionName) {
+      link.classList.add("bg-amber-50", "text-amber-700");
+    }
+  });
+}
+
+// Make sure to initialize
+document.addEventListener("DOMContentLoaded", () => {
+  // ... your existing init code
+  initCategoryManagement();
+});
 import { 
   API_BASE_URL,
   getAllOrders,
