@@ -1,3 +1,5 @@
+import os
+
 from controllers.user import (
 UserRegisterResource,
     BuyerLoginResource,
@@ -32,14 +34,15 @@ from flask_cors import CORS
 def register_routes(app):
     from flask_restful import Api
     # CORS(app, resources={r"/*": {"origins": "http://localhost:5173"}}, supports_credentials=True)
+        # Allow both local and production frontends
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        os.getenv("FRONTEND_URL", "http://localhost:5173")  # Production frontend
+    ]
 
     CORS(app, 
-         resources={r"/*": {"origins": [
-             "http://localhost:5173",
-             "http://127.0.0.1:5173",
-             "http://localhost:5000",
-             "http://127.0.0.1:5000"
-         ]}}, 
+         resources={r"/*": {"origins": allowed_origins}}, 
          supports_credentials=True,
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
