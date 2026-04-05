@@ -6,20 +6,85 @@ import {
   createAddress,
   createOrder,
   createDelivery,
-  initiateMpesaPayment, // <-- make sure this exists in api.js
+  initiateMpesaPayment,
 } from "./api.js";
 
-// Predefined locations around Nairobi
+// ══════════════════════════════════════════════════════════════════
+// LOCATION DATA - Kenya Counties
+// ══════════════════════════════════════════════════════════════════
 const LOCATION_DATA = {
   Nairobi: {
-    CBD: ["Kenyatta Avenue", "Moi Avenue", "Tom Mboya Street"],
-    Westlands: ["Waiyaki Way", "Ring Road Westlands", "Parklands Road"],
-    Kilimani: ["Ngong Road", "Argwings Kodhek Road", "Lenana Road"],
-    Kasarani: ["Thika Road", "Kasarani Mwiki Road"],
-    Embakasi: ["Airport North Road", "Outering Road"],
+    CBD: ["Kenyatta Avenue", "Moi Avenue", "Tom Mboya Street", "Kimathi Street"],
+    Westlands: ["Waiyaki Way", "Ring Road Westlands", "Parklands Road", "Mpaka Road"],
+    Kilimani: ["Ngong Road", "Argwings Kodhek Road", "Lenana Road", "Dennis Pritt Road"],
+    Kasarani: ["Thika Road", "Kasarani Mwiki Road", "Roysambu"],
+    Embakasi: ["Airport North Road", "Outering Road", "Pipeline"],
+    Karen: ["Karen Road", "Langata Road", "Ngong Road"],
+    Lavington: ["James Gichuru Road", "Gitanga Road"],
+  },
+  Meru: {
+    "Meru Town": ["Meru Central", "Makutano", "Gakoromone"],
+    Nkubu: ["Nkubu Town", "Kianjai"],
+    Maua: ["Maua Town", "Kangeta"],
+    Chuka: ["Chuka Town", "Mariani"],
+  },
+  Mombasa: {
+    "Mombasa Island": ["Moi Avenue", "Digo Road", "Nkrumah Road"],
+    Nyali: ["Nyali Road", "Links Road"],
+    Likoni: ["Likoni Ferry", "Mtongwe"],
+    Bamburi: ["Bamburi Beach Road"],
+  },
+  Kisumu: {
+    "Kisumu CBD": ["Oginga Odinga Street", "Jomo Kenyatta Highway"],
+    Milimani: ["Milimani Estate", "Tom Mboya Estate"],
+    Mamboleo: ["Mamboleo Junction"],
+  },
+  Nakuru: {
+    "Nakuru Town": ["Kenyatta Avenue", "Moi Road", "Gusii Road"],
+    Milimani: ["Milimani Estate"],
+    "Section 58": ["Section 58 Estate"],
+  },
+  Eldoret: {
+    "Eldoret CBD": ["Uganda Road", "Oloo Street", "Kenyatta Street"],
+    Langas: ["Langas Estate"],
+    Huruma: ["Huruma Estate"],
+  },
+  Nyeri: {
+    "Nyeri Town": ["Kimathi Street", "Gakere Road"],
+    Karatina: ["Karatina Town"],
+  },
+  Machakos: {
+    "Machakos Town": ["Machakos CBD", "Mwatu Wa Ngoma Road"],
+    "Athi River": ["Athi River Town", "EPZ"],
+  },
+  Kiambu: {
+    Thika: ["Thika Town", "Makongeni"],
+    Ruiru: ["Ruiru Town", "Kimbo"],
+    Kikuyu: ["Kikuyu Town"],
+    Juja: ["Juja Town", "JKUAT Area"],
+  },
+  Kajiado: {
+    Kitengela: ["Kitengela Town", "Acacia"],
+    "Ongata Rongai": ["Rongai Town", "Rimpa"],
+    Ngong: ["Ngong Town", "Matasia"],
   },
 };
 
+// ══════════════════════════════════════════════════════════════════
+// SHIPPING FEES BY COUNTY
+// ══════════════════════════════════════════════════════════════════
+const SHIPPING_FEES = {
+  Nairobi: 200,    // KSH 200 for Nairobi
+  Kiambu: 200,     // Near Nairobi
+  Kajiado: 200,    // Near Nairobi (Kitengela, Rongai, Ngong)
+  // All other counties get FREE shipping (promotional/testing)
+};
+
+const DEFAULT_SHIPPING = 0; // FREE for unlisted counties
+
+// ══════════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════════
 const state = {
   currentUser: null,
   authToken: null,
@@ -28,15 +93,18 @@ const state = {
   selectedAddressId: null,
   subtotal: 0,
   isPlacingOrder: false,
-  paintingMap: new Map(), // painting_id -> painting (for price/title)
-  shippingFee: 0, // computed from address (200 for Nairobi)
+  paintingMap: new Map(),
+  shippingFee: 0,
 };
 
 const els = {};
 
+// ══════════════════════════════════════════════════════════════════
+// INITIALIZATION
+// ══════════════════════════════════════════════════════════════════
 document.addEventListener("DOMContentLoaded", () => {
   cacheEls();
-  initLocationSelectors(); // fill county/town/street
+  initLocationSelectors();
   loadAuthFromStorage();
 
   if (!state.currentUser || !state.authToken) {
@@ -49,7 +117,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ========== DOM refs ========== */
-
 function cacheEls() {
   els.message = document.getElementById("checkout-message");
   els.addressList = document.getElementById("address-list");
@@ -63,6 +130,7 @@ function cacheEls() {
 
   els.shippingFee = document.getElementById("shipping-fee");
   els.shippingFeeSummary = document.getElementById("shipping-fee-summary");
+  els.shippingBadge = document.getElementById("shipping-badge");
   els.deliveryNote = document.getElementById("delivery-note");
 
   els.cartItemsList = document.getElementById("cart-items-list");
@@ -80,8 +148,7 @@ function cacheEls() {
   els.mpesaModalProceed = document.getElementById("mpesa-modal-proceed");
 }
 
-/* ========== Location selectors (Nairobi) ========== */
-
+/* ========== Location selectors ========== */
 function initLocationSelectors() {
   const countySelect = document.getElementById("county-select");
   const townSelect = document.getElementById("town-select");
@@ -93,17 +160,33 @@ function initLocationSelectors() {
   els.townSelect = townSelect;
   els.streetSelect = streetSelect;
 
+  // Clear and populate counties
   countySelect.innerHTML = '<option value="">Select county</option>';
-  Object.keys(LOCATION_DATA).forEach((county) => {
+  
+  // Sort counties alphabetically
+  const sortedCounties = Object.keys(LOCATION_DATA).sort();
+  
+  sortedCounties.forEach((county) => {
     const opt = document.createElement("option");
     opt.value = county;
-    opt.textContent = county;
+    
+    // Show shipping fee in dropdown
+    const fee = SHIPPING_FEES[county] ?? DEFAULT_SHIPPING;
+    const feeText = fee > 0 ? ` (KSH ${fee} shipping)` : ' (FREE shipping 🎉)';
+    opt.textContent = county + feeText;
+    
     countySelect.appendChild(opt);
   });
 
   countySelect.addEventListener("change", () => {
     const county = countySelect.value;
     populateTowns(county);
+    
+    // Update shipping preview when county changes (for new address form)
+    const fee = SHIPPING_FEES[county] ?? DEFAULT_SHIPPING;
+    state.shippingFee = fee;
+    updateTotalsUI();
+    updateShippingBadge();
   });
 
   townSelect.addEventListener("change", () => {
@@ -166,7 +249,6 @@ function populateStreets(county, town) {
 }
 
 /* ========== Auth ========== */
-
 function loadAuthFromStorage() {
   try {
     const rawUser = localStorage.getItem("auth_user");
@@ -182,7 +264,6 @@ function loadAuthFromStorage() {
 }
 
 /* ========== Init ========== */
-
 function initEvents() {
   if (els.toggleNewAddress) {
     els.toggleNewAddress.addEventListener("click", () => {
@@ -214,7 +295,6 @@ function initEvents() {
   }
 
   if (els.mpesaModal) {
-    // click outside to close
     els.mpesaModal.addEventListener("click", (e) => {
       if (e.target === els.mpesaModal) {
         closeMpesaModal();
@@ -242,7 +322,7 @@ async function initCheckout() {
         "Your cart is empty. Add some paintings before checkout.",
         true
       );
-      els.placeOrderBtn.disabled = true;
+      if (els.placeOrderBtn) els.placeOrderBtn.disabled = true;
       return;
     }
 
@@ -257,9 +337,25 @@ async function initCheckout() {
       updateTotalsUI();
     }
 
+    // Updated delivery note
     if (els.deliveryNote) {
-      els.deliveryNote.textContent =
-        "Flat shipping fee: Ksh 200 for all Nairobi locations.";
+      els.deliveryNote.innerHTML = `
+        <div class="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
+          <p class="font-medium mb-2 flex items-center gap-2">
+            <span>🚚</span> Shipping Rates:
+          </p>
+          <ul class="space-y-1 text-xs">
+            <li class="flex justify-between">
+              <span>Nairobi, Kiambu, Kajiado:</span>
+              <span class="font-semibold text-amber-600">KSH 200</span>
+            </li>
+            <li class="flex justify-between">
+              <span>Other counties (Meru, Mombasa, Kisumu, etc.):</span>
+              <span class="font-semibold text-green-600">FREE ✨</span>
+            </li>
+          </ul>
+        </div>
+      `;
     }
 
     showMessage("", false, true);
@@ -275,15 +371,11 @@ async function initCheckout() {
 }
 
 /* ========== API loaders ========== */
-
-// Load paintings for prices + cart items
 async function loadCartWithPaintings() {
-  // 1) paintings
   const paintings = await getAllPaintings();
   const paintingList = Array.isArray(paintings) ? paintings : [];
   state.paintingMap = new Map(paintingList.map((p) => [p.id, p]));
 
-  // 2) cart
   try {
     const cart = await getCart(state.currentUser.id, state.authToken);
     state.cart = cart || { items: [] };
@@ -310,7 +402,6 @@ async function loadAddresses() {
 }
 
 /* ========== Rendering ========== */
-
 function renderCartSummary() {
   const container = els.cartItemsList;
   container.innerHTML = "";
@@ -328,8 +419,6 @@ function renderCartSummary() {
 
   items.forEach((item) => {
     const qty = item.quantity || 1;
-
-    // Use paintingMap for price/title; fallback to "Painting #id"
     const painting =
       (item.painting_id && state.paintingMap.get(item.painting_id)) || {};
     const title = painting.title || `Painting #${item.painting_id}`;
@@ -369,19 +458,22 @@ function renderAddresses() {
 
   state.addresses.forEach((addr) => {
     const id = addr.id;
-    const labelText = `${addr.county || ""}, ${addr.town || ""}, ${
-      addr.street || ""
-    }`;
+    const labelText = `${addr.county || ""}, ${addr.town || ""}, ${addr.street || ""}`;
+    
+    // Show shipping fee for this address
+    const fee = computeShippingForAddress(addr);
+    const feeText = fee > 0 ? `KSH ${fee}` : 'FREE';
+    const feeClass = fee > 0 ? 'text-amber-600' : 'text-green-600';
 
     const wrapper = document.createElement("label");
     wrapper.className =
-      "flex items-start gap-2 text-sm border rounded px-3 py-2 cursor-pointer hover:border-indigo-500";
+      "flex items-start gap-2 text-sm border rounded-lg px-3 py-3 cursor-pointer hover:border-amber-500 hover:bg-amber-50 transition-colors";
 
     const radio = document.createElement("input");
     radio.type = "radio";
     radio.name = "address";
     radio.value = id;
-    radio.className = "mt-1";
+    radio.className = "mt-1 text-amber-600 focus:ring-amber-500";
 
     if (
       String(id) === String(state.selectedAddressId) ||
@@ -396,17 +488,20 @@ function renderAddresses() {
       recalcShippingFromAddress();
     });
 
-    const span = document.createElement("span");
-    span.textContent = labelText;
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "flex-1";
+    contentDiv.innerHTML = `
+      <span class="block">${labelText}</span>
+      <span class="text-xs ${feeClass} font-medium">Shipping: ${feeText}</span>
+    `;
 
     wrapper.appendChild(radio);
-    wrapper.appendChild(span);
+    wrapper.appendChild(contentDiv);
     container.appendChild(wrapper);
   });
 }
 
 /* ========== Shipping / Totals ========== */
-
 function getSelectedAddress() {
   if (!state.selectedAddressId) return null;
   return (
@@ -416,28 +511,73 @@ function getSelectedAddress() {
   );
 }
 
-// Flat 200 for all Nairobi addresses, 0 otherwise
+/**
+ * Calculate shipping fee based on county
+ * - Nairobi, Kiambu, Kajiado: KSH 200
+ * - All other counties: FREE
+ */
 function computeShippingForAddress(addr) {
   if (!addr || !addr.county) return 0;
-  const countyLower = String(addr.county).toLowerCase();
-  if (countyLower === "nairobi") return 200;
-  return 0;
+  
+  const county = String(addr.county).trim();
+  
+  // Check if county has a specific fee
+  if (SHIPPING_FEES.hasOwnProperty(county)) {
+    return SHIPPING_FEES[county];
+  }
+  
+  // Default: FREE shipping
+  return DEFAULT_SHIPPING;
 }
 
 function recalcShippingFromAddress() {
   const addr = getSelectedAddress();
-  state.shippingFee = computeShippingForAddress(addr);
+  
+  if (addr) {
+    state.shippingFee = computeShippingForAddress(addr);
+  } else {
+    // Check new address form
+    const countySelect = els.countySelect;
+    if (countySelect && countySelect.value) {
+      state.shippingFee = SHIPPING_FEES[countySelect.value] ?? DEFAULT_SHIPPING;
+    } else {
+      state.shippingFee = 0;
+    }
+  }
+  
   updateTotalsUI();
+  updateShippingBadge();
+}
+
+function updateShippingBadge() {
+  const badge = els.shippingBadge || document.getElementById("shipping-badge");
+  if (!badge) return;
+  
+  if (state.shippingFee === 0) {
+    badge.innerHTML = `
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+        ✨ FREE Shipping
+      </span>
+    `;
+  } else {
+    badge.innerHTML = `
+      <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+        🚚 KSH ${state.shippingFee} Shipping
+      </span>
+    `;
+  }
 }
 
 function updateTotalsUI() {
   const shipping = Number(state.shippingFee) || 0;
 
   if (els.shippingFee) {
-    els.shippingFee.textContent = `Ksh ${shipping.toLocaleString()}`;
+    els.shippingFee.textContent = shipping === 0 ? "FREE" : `Ksh ${shipping.toLocaleString()}`;
+    els.shippingFee.className = shipping === 0 ? "text-green-600 font-semibold" : "text-gray-800";
   }
   if (els.shippingFeeSummary) {
-    els.shippingFeeSummary.textContent = `Ksh ${shipping.toLocaleString()}`;
+    els.shippingFeeSummary.textContent = shipping === 0 ? "FREE" : `Ksh ${shipping.toLocaleString()}`;
+    els.shippingFeeSummary.className = shipping === 0 ? "text-green-600 font-semibold" : "text-gray-800";
   }
 
   const subtotal = state.subtotal || 0;
@@ -452,7 +592,6 @@ function updateTotalsUI() {
 }
 
 /* ========== Address creation ========== */
-
 async function handleNewAddressSubmit(e) {
   e.preventDefault();
   const form = e.target;
@@ -481,7 +620,8 @@ async function handleNewAddressSubmit(e) {
 
     form.reset();
     form.classList.add("hidden");
-    showMessage("", false, true);
+    showMessage("Address saved successfully!", false);
+    setTimeout(() => showMessage("", false, true), 2000);
   } catch (err) {
     console.error("Address create error:", err);
     showMessage(
@@ -492,10 +632,9 @@ async function handleNewAddressSubmit(e) {
   }
 }
 
-/* ========== M-Pesa modal helpers ========== */
-
+/* ========== M-Pesa modal ========== */
 function openMpesaModal() {
-  if (!els.mpesaModal) return; // fallback if modal not in DOM
+  if (!els.mpesaModal) return;
   els.mpesaModal.classList.remove("hidden");
   if (els.mpesaModalError) {
     els.mpesaModalError.classList.add("hidden");
@@ -512,8 +651,7 @@ function closeMpesaModal() {
   els.mpesaModal.classList.add("hidden");
 }
 
-/* ========== Place order (entry point) ========== */
-
+/* ========== Place order ========== */
 function handlePlaceOrder() {
   if (state.isPlacingOrder) return;
 
@@ -531,19 +669,14 @@ function handlePlaceOrder() {
   const paymentMethod = els.paymentMethod?.value || "mpesa";
 
   if (paymentMethod === "mpesa") {
-    // Show Killimall-style card for phone entry
     openMpesaModal();
   } else {
-    // Cash on delivery: go straight to order + delivery
     submitOrderFlow({ paymentMethod: "cod", phone: null });
   }
 }
 
-/* ========== M-Pesa Proceed button handler ========== */
-
 function handleMpesaProceed() {
   if (!els.mpesaModalPhone) {
-    // No modal in DOM, fallback: simple prompt
     const phone = window.prompt("Enter your M-Pesa phone number (e.g. 2547...):");
     if (!phone) return;
     submitOrderFlow({ paymentMethod: "mpesa", phone: phone.trim() });
@@ -561,15 +694,11 @@ function handleMpesaProceed() {
 
   if (els.mpesaModalError) {
     els.mpesaModalError.classList.add("hidden");
-    els.mpesaModalError.textContent = "";
   }
 
-  // Close modal and proceed with order + payment
   closeMpesaModal();
   submitOrderFlow({ paymentMethod: "mpesa", phone });
 }
-
-/* ========== Core flow: order + delivery + (optional) M-Pesa ========== */
 
 async function submitOrderFlow({ paymentMethod, phone }) {
   if (state.isPlacingOrder) return;
@@ -595,79 +724,53 @@ async function submitOrderFlow({ paymentMethod, phone }) {
   }
 
   try {
-    // Build paintings payload as expected by OrderListResource
-    // Build items payload as expected by OrderService.create_order
-      const itemsPayload = items.map((item) => ({
-        painting_id: item.painting_id || item.id,
-        quantity: item.quantity || 1,
-      }));
+    const itemsPayload = items.map((item) => ({
+      painting_id: item.painting_id || item.id,
+      quantity: item.quantity || 1,
+    }));
 
-    const orderStatus =
-      paymentMethod === "mpesa" ? "awaiting_payment" : "pending";
+    const orderStatus = paymentMethod === "mpesa" ? "awaiting_payment" : "pending";
 
     const orderBody = {
       buyer_id: state.currentUser.id,
-      items: itemsPayload,           // <-- key name must be "items"
+      items: itemsPayload,
       delivery_cost: state.shippingFee,
       status: orderStatus,
     };
 
     const order = await createOrder(orderBody, state.authToken);
 
-    // 1) Create order
-    // const order = await createOrder(orderBody, state.authToken);
-
-    // 2) Create delivery record
+    // Create delivery
     try {
-      const initialDeliveryStatus =
-  paymentMethod === "mpesa" ? "awaiting_payment" : "pending";
-
-  await createDelivery(
-    {
-      order_id: order.id,
-      address_id: state.selectedAddressId,
-      status: initialDeliveryStatus,   // <-- pass status
-    },
-    state.authToken
-  );
-    } catch (err) {
-      console.error("Delivery create error:", err);
-      alert(
-        (err.data && (err.data.message || err.data.error)) ||
-          "Order placed, but failed to create delivery record."
-      );
-    }
-
-    // 3) If M-Pesa: initiate payment
-    if (paymentMethod === "mpesa") {
-      const paymentResp = await initiateMpesaPayment(
+      const initialDeliveryStatus = paymentMethod === "mpesa" ? "awaiting_payment" : "pending";
+      await createDelivery(
         {
           order_id: order.id,
-          phone,
+          address_id: state.selectedAddressId,
+          status: initialDeliveryStatus,
         },
+        state.authToken
+      );
+    } catch (err) {
+      console.error("Delivery create error:", err);
+    }
+
+    // M-Pesa payment
+    if (paymentMethod === "mpesa") {
+      const paymentResp = await initiateMpesaPayment(
+        { order_id: order.id, phone },
         state.authToken
       );
 
       showMessage(
         paymentResp.message ||
-          "M-Pesa STK push initiated. Please check your phone to complete payment.",
+          "M-Pesa STK push initiated. Check your phone to complete payment.",
         false
       );
       window.location.href = `./order-details.html?order_id=${order.id}`;
-      // Optional: redirect or show an "Awaiting payment" screen instead of home
-      // window.location.href = "./orders.html";
     } else {
-      // COD
-      // showMessage(
-      //   `Order placed successfully! Order #${order.id || ""}. You will pay on delivery.`,
-      //   false
-      // );
-      // Optional: redirect to confirmation
-      // window.location.href = "./orders.html";
-          // COD
-    // showMessage(`Order placed successfully! Order #${order.id}.`, false);
       window.location.href = `./order-details.html?order_id=${order.id}`;
-      }
+    }
   } catch (err) {
     console.error("Order error:", err);
     showMessage(
@@ -688,7 +791,6 @@ async function submitOrderFlow({ paymentMethod, phone }) {
 }
 
 /* ========== Helpers ========== */
-
 function showMessage(text, isError = false, hide = false) {
   if (!els.message) return;
   if (hide || !text) {
