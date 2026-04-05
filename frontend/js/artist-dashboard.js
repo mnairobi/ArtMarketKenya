@@ -163,22 +163,79 @@ async function loadCategories() {
   }
 }
 
-async function loadArtistProfile() {
-  const data = await getArtists();
-  const artists = data?.artists || [];
-  currentArtistProfile = artists.find((a) => String(a.user_id) === String(currentUser.id)) || null;
+// async function loadArtistProfile() {
+//   const data = await getArtists();
+//   const artists = data?.artists || [];
+//   currentArtistProfile = artists.find((a) => String(a.user_id) === String(currentUser.id)) || null;
 
-  if (!currentArtistProfile) {
+//   if (!currentArtistProfile) {
+//     if (els.artistBioText) {
+//       els.artistBioText.textContent = "Click your profile picture to set up your artist profile";
+//     }
+//     if (els.bioInput) els.bioInput.value = "";
+//     if (els.socialInput) els.socialInput.value = "";
+//     if (els.artistImage) {
+//       els.artistImage.src = "https://via.placeholder.com/150?text=Artist";
+//     }
+//     return;
+//   }
+async function loadArtistProfile() {
+  try {
+    const data = await getArtists();
+    
+    // API returns array directly, not { artists: [...] }
+    const artists = Array.isArray(data) ? data : (data?.artists || []);
+    
+    currentArtistProfile = artists.find(
+      (a) => String(a.user_id) === String(currentUser.id)
+    ) || null;
+
+    if (!currentArtistProfile) {
+      // No profile yet - show placeholder
+      if (els.artistBioText) {
+        els.artistBioText.textContent = "Click your profile picture to set up your artist profile";
+      }
+      if (els.bioInput) els.bioInput.value = "";
+      if (els.socialInput) els.socialInput.value = "";
+      if (els.artistImage) {
+        els.artistImage.src = "https://via.placeholder.com/150/6B7280/FFFFFF?text=Artist";
+      }
+      return;
+    }
+
+    // Profile exists - populate fields
     if (els.artistBioText) {
-      els.artistBioText.textContent = "Click your profile picture to set up your artist profile";
+      els.artistBioText.textContent = currentArtistProfile.bio || "No bio yet";
     }
-    if (els.bioInput) els.bioInput.value = "";
-    if (els.socialInput) els.socialInput.value = "";
+    if (els.bioInput) {
+      els.bioInput.value = currentArtistProfile.bio || "";
+    }
+    if (els.socialInput) {
+      // Handle social_links as JSON or string
+      const socialLinks = currentArtistProfile.social_links;
+      if (typeof socialLinks === 'object') {
+        els.socialInput.value = JSON.stringify(socialLinks);
+      } else {
+        els.socialInput.value = socialLinks || "";
+      }
+    }
     if (els.artistImage) {
-      els.artistImage.src = "https://via.placeholder.com/150?text=Artist";
+      // Use profile picture or placeholder
+      els.artistImage.src = currentArtistProfile.profile_picture && 
+                            currentArtistProfile.profile_picture.startsWith('http')
+        ? currentArtistProfile.profile_picture
+        : "https://via.placeholder.com/150/6B7280/FFFFFF?text=Artist";
     }
-    return;
+    
+    console.log("✅ Artist profile loaded:", currentArtistProfile);
+    
+  } catch (err) {
+    console.error("Error loading artist profile:", err);
+    if (els.artistImage) {
+      els.artistImage.src = "https://via.placeholder.com/150/EF4444/FFFFFF?text=Error";
+    }
   }
+}
 
   if (els.artistBioText) {
     els.artistBioText.textContent = currentArtistProfile.bio || "No bio yet";
@@ -193,7 +250,7 @@ async function loadArtistProfile() {
     const imgUrl = buildImageUrl(currentArtistProfile.profile_picture);
     els.artistImage.src = imgUrl;
   }
-}
+
 
 async function loadArtistPaintings() {
   if (!els.paintingsList || !els.paintingsMsg) return;
@@ -224,6 +281,7 @@ async function loadArtistPaintings() {
     card.style.animationDelay = `${index * 50}ms`;
 
     const imgUrl = buildImageUrl(p.image_url);
+
     const formattedPrice = new Intl.NumberFormat("en-KE", {
       style: "currency",
       currency: "KES",
