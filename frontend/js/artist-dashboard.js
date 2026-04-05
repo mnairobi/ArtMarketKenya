@@ -694,11 +694,11 @@ async function onNewPaintingSubmit(e) {
   const form = e.target;
   const title = form["title"].value.trim();
   const price = form["price"].value.trim();
-  const categoryId = form["category_id"].value.trim();
-  const description = form["description"].value.trim();
+  const categoryId = form["category_id"]?.value?.trim() || "";
+  const description = form["description"]?.value?.trim() || "";
   const imageFile = form["image"].files[0];
-  const materials = form["materials"]?.value.trim() || "Not specified";
-  const location = form["location"]?.value.trim() || "Kenya";
+  const materials = form["materials"]?.value?.trim() || "Not specified";
+  const location = form["location"]?.value?.trim() || "Kenya";
 
   if (!title || !price || (!editingPainting && !imageFile)) {
     alert("Title, price, and image are required.");
@@ -707,19 +707,25 @@ async function onNewPaintingSubmit(e) {
 
   try {
     if (editingPainting) {
+      // --- UPDATE EXISTING PAINTING ---
       setMessage("Updating artwork...", false);
       const formData = new FormData();
       formData.append("title", title);
       formData.append("price", price);
       if (categoryId) formData.append("category_id", categoryId);
       if (description) formData.append("description", description);
+      if (materials) formData.append("materials", materials);
+      if (location) formData.append("location", location);
       if (imageFile) formData.append("image", imageFile);
 
       await updatePainting(editingPainting.id, formData);
       resetEditState();
+
     } else {
+      // --- CREATE NEW PAINTING ---
       setMessage("Uploading image and generating certificate...", false);
 
+      // 1. Upload image first
       let imageUrl = "";
       if (imageFile) {
         const uploadData = new FormData();
@@ -727,47 +733,67 @@ async function onNewPaintingSubmit(e) {
 
         const uploadRes = await fetch(`${API_BASE_URL}/upload`, {
           method: "POST",
-          headers: { Authorization: `Bearer ${localStorage.getItem("auth_token")}` },
+          headers: { 
+            Authorization: `Bearer ${localStorage.getItem("auth_token")}` 
+          },
           body: uploadData
         });
 
-        if (!uploadRes.ok) throw new Error("Image upload failed");
+        if (!uploadRes.ok) {
+          const errData = await uploadRes.json();
+          throw new Error(errData.error || "Image upload failed");
+        }
 
         const result = await uploadRes.json();
         imageUrl = result.url;
+        console.log("✅ Image uploaded:", imageUrl);
       }
 
-      const paintingData = {
-        artist_id: currentArtistProfile.id,
-        title,
-        price: parseFloat(price),
-        description,
-        category_id: categoryId ? parseInt(categoryId) : null,
-        image_url: imageUrl,
-        materials,
-        location
-      };
+      // 2. Create painting with FormData (NOT JSON)
+      const paintingFormData = new FormData();
+      paintingFormData.append("artist_id", currentArtistProfile.id);
+      paintingFormData.append("title", title);
+      paintingFormData.append("price", price);
+      paintingFormData.append("image_url", imageUrl);
+      
+      if (categoryId) paintingFormData.append("category_id", categoryId);
+      if (description) paintingFormData.append("description", description);
+      if (materials) paintingFormData.append("materials", materials);
+      if (location) paintingFormData.append("location", location);
+
+      // Debug log
+      console.log("=== Creating painting ===");
+      for (let [key, value] of paintingFormData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
 
       const response = await fetch(`${API_BASE_URL}/paintings`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("auth_token")}`
+          // ❌ Remove "Content-Type": "application/json"
+          // Browser sets correct multipart/form-data automatically
         },
-        body: JSON.stringify(paintingData)
+        body: paintingFormData  // ✅ FormData, not JSON.stringify()
       });
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.message || "Failed to create painting");
+        throw new Error(errData.error || errData.message || "Failed to create painting");
       }
 
       const painting = await response.json();
       form.reset();
 
+      // Success message with certificate info
       if (painting.ipfs_cid && painting.qr_code_url) {
         setTimeout(() => {
-          alert(`🎨 "${painting.title}" created successfully!\n\n✅ Hakika ya Kienyeji Certificate Generated!\n🔗 QR Code: ${painting.qr_code_url}\n🆔 Certificate ID: ${painting.ipfs_cid}`);
+          alert(
+            `🎨 "${painting.title}" created successfully!\n\n` +
+            `✅ Hakika ya Kienyeji Certificate Generated!\n` +
+            `🔗 QR Code: ${painting.qr_code_url}\n` +
+            `🆔 Certificate ID: ${painting.ipfs_cid}`
+          );
         }, 500);
       } else {
         alert(`🎨 "${painting.title}" created successfully!`);
@@ -777,13 +803,13 @@ async function onNewPaintingSubmit(e) {
     await loadArtistPaintings();
     setMessage("Artwork saved successfully!", false);
     setTimeout(() => clearMessage(), 2000);
+
   } catch (err) {
-    console.error(err);
+    console.error("Painting submission error:", err);
     const msg = err.data?.message || err.data?.error || err.message || "Failed to save artwork.";
     setMessage(msg, true);
   }
 }
-
 /* ========== PAINTING ACTIONS ========== */
 function startEditPainting(p) {
   editingPainting = p;
