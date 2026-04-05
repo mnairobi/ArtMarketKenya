@@ -4,101 +4,87 @@ from werkzeug.utils import secure_filename
 from services.artistService import ArtistService
 from models.user import User
 import os
+from services.cloudinary import upload_image
 
 
 class ArtistResource(Resource):
-    # GET all artists
     def get(self):
-        artists = ArtistService.list_artists()
-        return {"artists": artists}, 200
-
-    # CREATE artist profile
-    def post(self):
-        # user_id = request.form.get("user_id")
-        user_id = int(request.form.get("user_id"))  # ← ADD int() HERE
-        bio = request.form.get("bio")
-        social_links = request.form.get("social_links")
-        image = request.files.get("profile_picture")
-
-        if not user_id or not bio:
-            return {"error": "user_id and bio are required"}, 400
-
-        user = User.query.get(user_id)
-        if not user:
-            return {"error": "User does not exist"}, 404
-
-        if user.role not in ["artist", "admin"]:
-            return {"error": "Only artists or admins can create artist profiles"}, 403
-
-        profile_picture_url = None
-
-        if image:
-            filename = secure_filename(image.filename)
-            upload_folder = os.path.join(
-                current_app.static_folder, "images", "artists"
-            )
-            os.makedirs(upload_folder, exist_ok=True)
-
-            file_path = os.path.join(upload_folder, filename)
-            image.save(file_path)
-
-            profile_picture_url = f"/static/images/artists/{filename}"
-
-        result, status = ArtistService.create_artist(
-            user_id=user_id,
-            bio=bio,
-            profile_picture=profile_picture_url,
-            social_links=social_links,
-        )
-
+        """Get all artists"""
+        result, status = ArtistService.get_all_artists()
         return result, status
+
+    def post(self):
+        """Create artist profile"""
+        try:
+            user_id = int(request.form.get("user_id"))
+            bio = request.form.get("bio")
+            phone = request.form.get("phone", "")
+            location = request.form.get("location", "")
+            social_links = request.form.get("social_links", "")
+            
+            # Handle profile picture upload
+            profile_picture_url = None
+            if 'profile_picture' in request.files:
+                file = request.files['profile_picture']
+                if file and file.filename:
+                    try:
+                        upload_result = upload_image(file, folder="artists")
+                        profile_picture_url = upload_result['url']
+                    except Exception as e:
+                        return {"error": f"Profile picture upload failed: {str(e)}"}, 500
+            
+            result, status = ArtistService.create_artist(
+                user_id=user_id,
+                bio=bio,
+                phone=phone,
+                social_links=social_links,
+                profile_picture_url=profile_picture_url
+            )
+            
+            return result, status
+        
+        except ValueError:
+            return {"error": "Invalid user_id format"}, 400
+        except Exception as e:
+            return {"error": str(e)}, 500
+
 
 
 class ArtistDetailResource(Resource):
-    # UPDATE artist profile
-    def put(self, artist_id):
-        user_id = request.form.get("user_id")
-        image = request.files.get("profile_picture")
-
-        if not user_id:
-            return {"error": "user_id is required"}, 400
-
-        # Cast to int
-        try:
-            user_id_int = int(user_id)
-        except ValueError:
-            return {"error": "Invalid user_id"}, 400
-
-        user = User.query.get(user_id_int)
-        if not user:
-            return {"error": "User does not exist"}, 404
-
-        # Copy form fields, but remove user_id so we don't try to set artist.user_id from here
-        update_data = dict(request.form)
-        update_data.pop("user_id", None)
-
-        if image:
-            filename = secure_filename(image.filename)
-            upload_folder = os.path.join(
-                current_app.static_folder, "images", "artists"
-            )
-            os.makedirs(upload_folder, exist_ok=True)
-
-            file_path = os.path.join(upload_folder, filename)
-            image.save(file_path)
-
-            update_data["profile_picture"] = f"/static/images/artists/{filename}"
-
-        result, status = ArtistService.update_artist(artist_id, user_id_int, update_data)
+    def get(self, artist_id):
+        """Get single artist"""
+        result, status = ArtistService.get_artist(artist_id)
         return result, status
 
-    # DELETE artist profile
+    def put(self, artist_id):
+        """Update artist profile"""
+        try:
+            data = {}
+            
+            # Handle form data
+            if request.form:
+                for key in ['bio', 'phone', 'location', 'social_links']:
+                    if key in request.form:
+                        data[key] = request.form[key]
+            
+            # Handle profile picture upload
+            if 'profile_picture' in request.files:
+                file = request.files['profile_picture']
+                if file and file.filename:
+                    try:
+                        upload_result = upload_image(file, folder="artists")
+                        data['profile_picture_url'] = upload_result['url']
+                    except Exception as e:
+                        return {"error": f"Profile picture upload failed: {str(e)}"}, 500
+            
+            result, status = ArtistService.update_artist(artist_id, **data)
+            return result, status
+        
+        except Exception as e:
+            return {"error": str(e)}, 500
+
     def delete(self, artist_id):
-        data = request.get_json()
-        user_id = data.get("user_id")
-
-        if not user_id:
-            return {"error": "user_id is required"}, 400
-
+        """Delete artist profile"""
+        user_id = request.json.get("user_id")
         result, status = ArtistService.delete_artist(artist_id, user_id)
         return result, status

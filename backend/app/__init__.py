@@ -62,6 +62,7 @@ from services.extensions import db, cors, jwt,mail
 from .config import config_by_name
 from routes import register_routes
 from flask_migrate import Migrate   # <-- add this
+from services.cloudinary import init_cloudinary
 
 migrate = Migrate()  # migration engine
 
@@ -74,6 +75,10 @@ def create_app(config_name="development"):
     cors.init_app(app)
     migrate.init_app(app, db)    # <-- connect Migrate with app + db
     mail.init_app(app)          # <-- initialize Flask-Mail
+    
+        # Initialize Cloudinary
+    with app.app_context():
+        init_cloudinary()           # <-- initialize Cloudinary with config
 
     # Import models so Alembic sees them
     with app.app_context():

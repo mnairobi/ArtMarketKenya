@@ -5,69 +5,58 @@ from services.paintingService import PaintingService
 from models.painting import Painting
 import os
 import traceback
+from flask_jwt_extended import jwt_required
+from services.cloudinary import upload_image
 
 class PaintingCreateResource(Resource):
+    @jwt_required()
     def post(self):
-        if request.is_json:
-            data = request.get_json()
-            if not data:
-                return {"message": "No input data provided"}, 400
-
-            required = ["artist_id", "title", "price", "image_url"]
-            for field in required:
-                if field not in data:
-                    return {"message": f"{field} is required"}, 400
-
-            try:
-                result, status = PaintingService.create_painting(
-                    artist_id=data["artist_id"],
-                    category_id=data.get("category_id"),
-                    title=data["title"],
-                    description=data.get("description"),
-                    price=data["price"],
-                    image_url=data["image_url"],
-                    materials=data.get("materials", "Not specified"),  # 👈 NEW
-                    location=data.get("location", "Kenya")              # 👈 NEW
-                )
-                return result, status
-            except Exception as e:
-                traceback.print_exc()
-                return {"message": str(e)}, 500
-
+        """Create new painting with Cloudinary image upload"""
         try:
+            # Get form data
             artist_id = request.form.get("artist_id")
             category_id = request.form.get("category_id")
             title = request.form.get("title")
             description = request.form.get("description")
             price = request.form.get("price")
-            image = request.files.get("image")
-
-            if not all([artist_id, title, price, image]):
-                return {"message": "Missing required fields"}, 400
-
-            filename = secure_filename(image.filename)
-            image_folder = os.path.join(
-                current_app.static_folder, "images", "paintings"
-            )
-            os.makedirs(image_folder, exist_ok=True)
-
-            image_path = os.path.join(image_folder, filename)
-            image.save(image_path)
-
-            image_url = f"/static/images/paintings/{filename}"
-
+            materials = request.form.get("materials")
+            location = request.form.get("location")
+            
+            # Validate required fields
+            if not all([artist_id, title, price]):
+                return {"error": "artist_id, title, and price are required"}, 400
+            
+            # Handle image upload
+            image_url = None
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename:
+                    try:
+                        # Upload to Cloudinary
+                        upload_result = upload_image(file, folder="paintings")
+                        image_url = upload_result['url']
+                    except Exception as e:
+                        return {"error": f"Image upload failed: {str(e)}"}, 500
+            
+            # Create painting
             result, status = PaintingService.create_painting(
-                artist_id=artist_id,
-                category_id=category_id,
+                artist_id=int(artist_id),
+                category_id=int(category_id) if category_id else None,
                 title=title,
                 description=description,
-                price=price,
+                price=float(price),
                 image_url=image_url,
+                materials=materials,
+                location=location
             )
+            
             return result, status
+        
+        except ValueError as e:
+            return {"error": f"Invalid data format: {str(e)}"}, 400
         except Exception as e:
-            traceback.print_exc()
-            return {"message": str(e)}, 500
+            print(f"Error creating painting: {str(e)}")
+            return {"error": str(e)}, 500
 
 
 
@@ -97,61 +86,43 @@ class PaintingListResource(Resource):
 
 class PaintingResource(Resource):
     def get(self, painting_id):
-        try:
-            painting = PaintingService.get_painting_by_id(painting_id)
-            if not painting:
-                return {"message": "Painting not found"}, 404
-            return painting, 200
-        except Exception:
-            return {"message": "An unexpected error occurred."}, 500
-
+        """Get single painting"""
+        result, status = PaintingService.get_painting(painting_id)
+        return result, status
+    
+    @jwt_required()
     def put(self, painting_id):
+        """Update painting"""
         try:
-            painting = PaintingService.get_painting_by_id(painting_id)
-            if not painting:
-                return {"message": "Painting not found"}, 404
-
-            title = request.form.get("title", painting["title"])
-            description = request.form.get("description", painting.get("description"))
-            price = request.form.get("price", painting["price"])
-            artist_id = request.form.get("artist_id", painting["artist_id"])
-            category_id = request.form.get("category_id", painting.get("category_id"))
-            image = request.files.get("image")
-
-            if image:
-                filename = secure_filename(image.filename)
-                image_folder = os.path.join(current_app.static_folder, "images")
-                os.makedirs(image_folder, exist_ok=True)
-                image_path = os.path.join(image_folder, filename)
-                image.save(image_path)
-                image_url = f"/static/images/{filename}"
-            else:
-                image_url = painting["image_url"]
-
-            update_data = {
-                "title": title,
-                "description": description,
-                "price": price,
-                "image_url": image_url,
-                "artist_id": artist_id,
-                "category_id": category_id
-            }
-
-            result, status = PaintingService.update_painting(painting_id, update_data)
+            data = {}
+            
+            # Handle form data
+            if request.form:
+                for key in ['title', 'description', 'price', 'materials', 'location', 'category_id', 'status']:
+                    if key in request.form:
+                        data[key] = request.form[key]
+            
+            # Handle image upload
+            if 'image' in request.files:
+                file = request.files['image']
+                if file and file.filename:
+                    try:
+                        upload_result = upload_image(file, folder="paintings")
+                        data['image_url'] = upload_result['url']
+                    except Exception as e:
+                        return {"error": f"Image upload failed: {str(e)}"}, 500
+            
+            result, status = PaintingService.update_painting(painting_id, **data)
             return result, status
-        except ValueError as e:
-            return {"message": str(e)}, 400
-        except Exception as e:
-            traceback.print_exc()
-            return {"message": str(e)}, 500
-
-    def delete(self, painting_id):
-        try:
-            result, status = PaintingService.delete_painting(painting_id)
-            return result, status
-        except Exception:
-            return {"message": "An unexpected error occurred."}, 500
         
+        except Exception as e:
+            return {"error": str(e)}, 500
+    
+    @jwt_required()
+    def delete(self, painting_id):
+        """Delete painting"""
+        result, status = PaintingService.delete_painting(painting_id)
+        return result, status
 # controllers/painting.py
 
 # class PaintingVerifyResource(Resource):
