@@ -1137,3 +1137,25 @@ window.processAllPayouts = async function() {
     alert("Failed to process payouts");
   }
 };
+// ══════════════════════════════════════════════════════════════════
+// EXPOSE FUNCTIONS GLOBALLY (for onclick handlers in HTML)
+// ══════════════════════════════════════════════════════════════════
+
+// Navigation
+window.showSection = showSection;
+window.logout = logout;
+
+// Categories
+window.openCategoryModal = openCategoryModal;
+window.closeCategoryModal = closeCategoryModal;
+window.saveCategory = saveCategory;
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
+window.fillTemplate = fillTemplate;
+window.openBulkModal = openBulkModal;
+window.closeBulkModal = closeBulkModal;
+window.createBulkCategories = createBulkCategories;
+
+// Add any other functions your HTML onclick handlers need
+window.openUserModal = typeof openUserModal !== 'undefined' ? openUserModal : () => {};
+window.closeUserModal = typeof closeUserModal !== 'undefined' ? closeUserModal : () => {};
