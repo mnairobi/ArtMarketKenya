@@ -163,53 +163,53 @@ class PaintingService:
             return None
         return painting.to_dict()
 
-    @staticmethod
-    def update_painting(painting_id, data):
-        """Update painting details"""
-        painting = Painting.query.get(painting_id)
-        if not painting:
-            return {"message": "Painting not found"}, 404
+@staticmethod
+def update_painting(painting_id, **kwargs):
+    """Update painting details"""
+    painting = Painting.query.get(painting_id)
+    if not painting:
+        return {"message": "Painting not found"}, 404
 
-        # Validate new artist_id if changed
-        if "artist_id" in data:
-            artist = Artist.query.get(data["artist_id"])
-            if not artist:
-                return {"message": "Artist does not exist"}, 404
+    # Validate new artist_id if changed
+    if "artist_id" in kwargs:
+        artist = Artist.query.get(kwargs["artist_id"])
+        if not artist:
+            return {"message": "Artist does not exist"}, 404
 
-        # Validate new category_id if changed
-        if "category_id" in data and data["category_id"] is not None:
-            category = Category.query.get(data["category_id"])
-            if not category:
-                return {"message": "Category does not exist"}, 404
+    # Validate new category_id if changed
+    if "category_id" in kwargs and kwargs["category_id"] is not None:
+        category = Category.query.get(kwargs["category_id"])
+        if not category:
+            return {"message": "Category does not exist"}, 404
 
-        # Check for duplicate title (if title or artist changed)
-        new_title = data.get("title", painting.title)
-        new_artist = data.get("artist_id", painting.artist_id)
+    # Check for duplicate title (if title or artist changed)
+    new_title = kwargs.get("title", painting.title)
+    new_artist = kwargs.get("artist_id", painting.artist_id)
 
-        if (new_title.lower() != painting.title.lower()) or (new_artist != painting.artist_id):
-            existing = Painting.query.filter(
-                Painting.artist_id == new_artist,
-                db.func.lower(Painting.title) == new_title.lower(),
-                Painting.id != painting.id
-            ).first()
-            if existing:
-                return {"message": "Artist already has a painting with this title"}, 400
+    if (new_title.lower() != painting.title.lower()) or (new_artist != painting.artist_id):
+        existing = Painting.query.filter(
+            Painting.artist_id == new_artist,
+            db.func.lower(Painting.title) == new_title.lower(),
+            Painting.id != painting.id
+        ).first()
+        if existing:
+            return {"message": "Artist already has a painting with this title"}, 400
 
-        # Apply updates
-        for key, value in data.items():
-            if hasattr(painting, key):
-                # Don't allow direct update of is_available/is_sold (managed by stock)
-                if key not in ['is_available', 'is_sold', 'stock_quantity']:
-                    setattr(painting, key, value)
+    # Apply updates
+    for key, value in kwargs.items():
+        if hasattr(painting, key):
+            # Don't allow direct update of is_available/is_sold (managed by stock)
+            if key not in ['is_available', 'is_sold', 'stock_quantity']:
+                setattr(painting, key, value)
 
-        try:
-            db.session.commit()
-            logger.info(f"✅ Updated painting #{painting_id}")
-            return painting.to_dict(), 200
-        except SQLAlchemyError as e:
-            db.session.rollback()
-            logger.exception("Database error while updating painting")
-            return {"message": "Database error while updating painting"}, 500
+    try:
+        db.session.commit()
+        logger.info(f"✅ Updated painting #{painting_id}")
+        return painting.to_dict(), 200
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.exception("Database error while updating painting")
+        return {"message": "Database error while updating painting"}, 500
 
     @staticmethod
     def delete_painting(painting_id):
@@ -270,6 +270,14 @@ class PaintingService:
             db.session.rollback()
             logger.exception("Error marking painting as sold")
             return {"message": "Database error"}, 500
+    
+    @staticmethod
+    def get_painting(painting_id):
+        """Get single painting by ID - returns (result, status) tuple"""
+        painting = Painting.query.get(painting_id)
+        if not painting:
+            return {"error": "Painting not found"}, 404
+        return painting.to_dict(), 200
 
     @staticmethod
     def restore_stock(painting_id, quantity=1):
@@ -304,3 +312,7 @@ class PaintingService:
             db.session.rollback()
             logger.exception("Error restoring painting stock")
             return {"message": "Database error"}, 500
+
+
+
+        
