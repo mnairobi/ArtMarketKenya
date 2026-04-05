@@ -90,6 +90,25 @@ class ArtistService:
         except SQLAlchemyError:
             db.session.rollback()
             return {"message": "Database error while deleting artist"}, 500
+    @staticmethod
+    def get_all_artists():
+        """Get all artist profiles with user info"""
+        try:
+            artists = Artist.query.filter(Artist.deleted_at.is_(None)).all()
+            
+            result = []
+            for artist in artists:
+                artist_dict = artist.to_dict()
+                # Add user info
+                if artist.user:
+                    artist_dict['username'] = artist.user.username
+                    artist_dict['email'] = artist.user.email
+                result.append(artist_dict)
+            
+            return result, 200
+        except Exception as e:
+            print(f"Error getting artists: {e}")
+            return {"error": str(e)}, 500
 
     @staticmethod
     def get_artist_by_user(user_id):
