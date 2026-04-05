@@ -61,7 +61,7 @@ class ArtistResource(Resource):
                 user_id=int(user_id),
                 bio=bio,
                 social_links=social_links,
-                profile_picture_url=profile_picture_url
+                profile_picture=profile_picture_url
             )
             
             return result, status
