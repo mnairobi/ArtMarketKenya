@@ -232,41 +232,76 @@
     </div>
   </header>
 
-  <!-- Search Overlay -->
-  <div id="search-overlay" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 hidden items-start justify-center pt-20">
-    <div class="bg-white w-full max-w-2xl mx-4 rounded-2xl shadow-2xl animate-slide-up overflow-hidden">
-      <div class="p-4 border-b border-gallery-100">
-        <div class="flex items-center gap-3">
-          <svg class="w-5 h-5 text-gallery-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+<!-- Search Overlay -->
+<div id="search-overlay" class="hidden fixed inset-0 bg-black/50 z-50 items-start justify-center pt-16 md:pt-24 px-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+    <!-- Search Input -->
+    <div class="p-4 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        <input 
+          type="text" 
+          id="quick-search-input"
+          placeholder="Search paintings, artists, styles..."
+          class="flex-1 text-lg border-0 focus:ring-0 focus:outline-none placeholder-gray-400"
+        >
+        <kbd class="hidden md:inline-flex items-center px-2 py-1 text-xs text-gray-400 bg-gray-100 rounded">ESC</kbd>
+        <button id="close-search" class="p-2 hover:bg-gray-100 rounded-full transition">
+          <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
           </svg>
-          <input 
-            id="search-input"
-            type="text" 
-            placeholder="Search artworks, artists, styles..." 
-            class="flex-1 text-lg outline-none placeholder:text-gallery-400"
-            autofocus
-          />
-          <button id="search-close" class="p-2 hover:bg-gallery-100 rounded-full transition">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-            </svg>
-          </button>
-        </div>
+        </button>
       </div>
-      <div class="p-4">
-        <p class="text-xs text-gallery-500 uppercase tracking-wider mb-3">Popular Searches</p>
-        <div class="flex flex-wrap gap-2">
-          <button class="px-3 py-1.5 bg-gallery-100 text-sm rounded-full hover:bg-gallery-200 transition">Abstract</button>
-          <button class="px-3 py-1.5 bg-gallery-100 text-sm rounded-full hover:bg-gallery-200 transition">Landscape</button>
-          <button class="px-3 py-1.5 bg-gallery-100 text-sm rounded-full hover:bg-gallery-200 transition">Portrait</button>
-          <button class="px-3 py-1.5 bg-gallery-100 text-sm rounded-full hover:bg-gallery-200 transition">African Art</button>
-          <button class="px-3 py-1.5 bg-gallery-100 text-sm rounded-full hover:bg-gallery-200 transition">Contemporary</button>
-        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div class="max-h-[60vh] overflow-y-auto">
+      <!-- Loading -->
+      <div id="search-loading" class="hidden p-8 text-center">
+        <svg class="w-8 h-8 mx-auto animate-spin text-amber-600" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+        </svg>
+        <p class="text-sm text-gray-500 mt-2">Searching...</p>
+      </div>
+
+      <!-- Suggestions List -->
+      <div id="search-suggestions-list" class="divide-y divide-gray-50"></div>
+
+      <!-- Empty State -->
+      <div id="search-empty" class="hidden p-8 text-center">
+        <svg class="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <p class="text-gray-500 text-sm">No paintings found</p>
+        <p class="text-gray-400 text-xs mt-1">Try different keywords</p>
+      </div>
+    </div>
+
+    <!-- Quick Links -->
+    <div class="p-3 bg-gray-50 border-t border-gray-100">
+      <div class="flex flex-wrap gap-2">
+        <a href="./search.html" class="px-3 py-1.5 bg-white rounded-full text-xs text-gray-600 hover:bg-amber-100 hover:text-amber-700 transition shadow-sm">
+          🔍 Advanced Search
+        </a>
+        <a href="./search.html?category_id=1" class="px-3 py-1.5 bg-white rounded-full text-xs text-gray-600 hover:bg-amber-100 hover:text-amber-700 transition shadow-sm">
+          🏞️ Landscape
+        </a>
+        <a href="./search.html?category_id=2" class="px-3 py-1.5 bg-white rounded-full text-xs text-gray-600 hover:bg-amber-100 hover:text-amber-700 transition shadow-sm">
+          🦁 Wildlife
+        </a>
+        <a href="./search.html?category_id=3" class="px-3 py-1.5 bg-white rounded-full text-xs text-gray-600 hover:bg-amber-100 hover:text-amber-700 transition shadow-sm">
+          👤 Portrait
+        </a>
+        <a href="./search.html?category_id=4" class="px-3 py-1.5 bg-white rounded-full text-xs text-gray-600 hover:bg-amber-100 hover:text-amber-700 transition shadow-sm">
+          🎨 Abstract
+        </a>
       </div>
     </div>
   </div>
-
+</div>
   <main class="flex-1">
     <!-- Hero Section -->
     <section class="relative bg-gallery-900 text-white overflow-hidden">

@@ -26,6 +26,7 @@ from controllers.upload import UploadResource
 from controllers.certificate import CertificateIssueResource, CertificateVerifyResource
 from controllers.passwordReset import ForgotPasswordResource,ResetPasswordResource,ValidateResetTokenResource
 from controllers.admin import CreateAdminResource,PromoteToAdminResource,UserSuspendResource,UserActivateResource
+from controllers.search import SearchPaintingsResource, SearchSuggestionsResource
 
 from controllers.setup import DatabaseSetupResource, DatabaseSeedResource
 
@@ -198,3 +199,7 @@ def register_routes(app):
         # Setup routes (temporary - remove after use)
     api.add_resource(DatabaseSetupResource, '/setup/database')
     api.add_resource(DatabaseSeedResource, '/setup/seed')
+
+        # Search routes
+    api.add_resource(SearchPaintingsResource, '/search')
+    api.add_resource(SearchSuggestionsResource, '/search/suggestions')

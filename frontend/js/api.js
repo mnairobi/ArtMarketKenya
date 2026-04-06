@@ -694,3 +694,46 @@ export function verifyPaystackPayment(reference, token) {
 export function getPaymentMethods() {
   return apiRequest("/payment-methods");
 }
+
+// ──────────────────────────────────────────────
+// SEARCH
+// ──────────────────────────────────────────────
+
+/**
+ * Search paintings with filters
+ * @param {Object} params - Search parameters
+ * @param {string} params.q - Search query
+ * @param {number} params.category_id - Category filter
+ * @param {number} params.artist_id - Artist filter
+ * @param {number} params.min_price - Minimum price
+ * @param {number} params.max_price - Maximum price
+ * @param {string} params.sort_by - Sort field (created_at, price, title)
+ * @param {string} params.sort_order - Sort order (asc, desc)
+ * @param {number} params.page - Page number
+ * @param {number} params.per_page - Results per page
+ */
+export function searchPaintings(params = {}) {
+  const queryString = new URLSearchParams();
+  
+  if (params.q) queryString.append("q", params.q);
+  if (params.category_id) queryString.append("category_id", params.category_id);
+  if (params.artist_id) queryString.append("artist_id", params.artist_id);
+  if (params.min_price) queryString.append("min_price", params.min_price);
+  if (params.max_price) queryString.append("max_price", params.max_price);
+  if (params.sort_by) queryString.append("sort_by", params.sort_by);
+  if (params.sort_order) queryString.append("sort_order", params.sort_order);
+  if (params.page) queryString.append("page", params.page);
+  if (params.per_page) queryString.append("per_page", params.per_page);
+  
+  return apiRequest(`/search?${queryString.toString()}`);
+}
+
+/**
+ * Get search suggestions (autocomplete)
+ */
+export function getSearchSuggestions(query) {
+  if (!query || query.length < 2) {
+    return Promise.resolve({ suggestions: [] });
+  }
+  return apiRequest(`/search/suggestions?q=${encodeURIComponent(query)}`);
+}

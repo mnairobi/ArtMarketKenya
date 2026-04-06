@@ -13,6 +13,8 @@ import {
   createReview,
   updateReview,
   deleteReview,
+  searchPaintings,        // ✅ Search API
+  getSearchSuggestions,   // ✅ Search suggestions API
 } from "./api.js";
 
 /* ========== State ========== */
@@ -28,11 +30,12 @@ const state = {
   currentReviews: [],
   selectedRating: 0,
   editingReviewId: null,
-  viewMode: "grid", // "grid" or "masonry"
+  viewMode: "grid",
   sortBy: "newest",
 };
 
 const els = {};
+let searchDebounce = null;
 
 /* ========== Init ========== */
 document.addEventListener("DOMContentLoaded", () => {
@@ -118,12 +121,8 @@ function initEventListeners() {
   initVerificationModalEvents();
   initReviewEvents();
   
-  // Search
-  els.searchToggle?.addEventListener("click", openSearch);
-  els.searchClose?.addEventListener("click", closeSearch);
-  els.searchOverlay?.addEventListener("click", (e) => {
-    if (e.target === els.searchOverlay) closeSearch();
-  });
+  // Search - ✅ Updated with live search
+  initSearchEvents();
   
   // Mobile menu
   els.mobileMenuToggle?.addEventListener("click", toggleMobileMenu);
@@ -186,7 +185,6 @@ async function initHome() {
     state.categories = categories || [];
     state.paintings = paintings || [];
 
-    // DEBUG: Log the first painting to see its structure
     console.log("First painting data:", paintings[0]);
     console.log("Available fields:", Object.keys(paintings[0] || {}));
 
@@ -319,10 +317,8 @@ function renderCategoryFilters() {
     return btn;
   };
 
-  // "All" button
   container.appendChild(createButton("all", "All Artworks", state.selectedCategoryId === "all"));
 
-  // Category buttons
   state.categories.forEach((cat) => {
     const isActive = String(state.selectedCategoryId) === String(cat.id);
     container.appendChild(createButton(String(cat.id), cat.name || `Category ${cat.id}`, isActive));
@@ -374,7 +370,6 @@ function renderPaintings(paintings) {
 
   els.message?.classList.add("hidden");
 
-  // Set grid/masonry classes
   if (state.viewMode === "masonry") {
     container.className = "masonry-grid";
   } else {
@@ -400,35 +395,27 @@ function renderPaintings(paintings) {
     const newBadge = clone.querySelector(".new-badge");
     const verifyBtn = clone.querySelector(".verify-btn");
 
-    // Add masonry class if needed
     if (state.viewMode === "masonry") {
       card.classList.add("masonry-item");
     }
 
-    // Image
     const imageSrc = buildImageUrl(p.image_url);
     img.src = imageSrc;
     img.alt = p.title || "Artwork";
     img.addEventListener("load", () => img.classList.add("loaded"));
 
-    // Title & Artist
     titleEl.textContent = p.title || "Untitled";
-
-    // Price
     priceEl.textContent = formatPrice(p.price);
 
-    // Certificate badge
     if (p.ipfs_cid && certBadge) {
       certBadge.classList.remove("hidden");
     }
 
-    // New badge (show for items created in last 7 days)
     const isNew = p.created_at && isWithinDays(p.created_at, 7);
     if (isNew && newBadge) {
       newBadge.classList.remove("hidden");
     }
 
-    // Verify button
     if (p.ipfs_cid && verifyBtn) {
       verifyBtn.classList.remove("hidden");
       verifyBtn.addEventListener("click", (e) => {
@@ -437,11 +424,9 @@ function renderPaintings(paintings) {
       });
     }
 
-    // Wishlist state
     const isWishlisted = state.wishlist.has(p.id);
     updateWishlistButtonUI(wishlistBtn, isWishlisted);
 
-    // Event listeners
     card.addEventListener("click", (e) => {
       if (e.target.closest("button") || e.target.closest("a")) return;
       openPaintingModal(p);
@@ -462,14 +447,12 @@ function renderPaintings(paintings) {
       handleToggleWishlist(p, wishlistBtn);
     });
 
-    // Staggered animation
     card.style.animationDelay = `${index * 50}ms`;
     card.classList.add("animate-fade-in");
 
     container.appendChild(clone);
   });
 
-  // Show load more if there are many paintings
   if (paintings.length >= 12) {
     els.loadMoreContainer?.classList.remove("hidden");
   } else {
@@ -481,7 +464,6 @@ function renderPaintings(paintings) {
 function setViewMode(mode) {
   state.viewMode = mode;
   
-  // Update button states
   if (mode === "grid") {
     els.viewGrid?.classList.add("bg-gallery-900", "text-white");
     els.viewGrid?.classList.remove("hover:bg-gallery-100");
@@ -531,7 +513,6 @@ async function handleToggleWishlist(painting, btn) {
 
   const isOn = state.wishlist.has(painting.id);
 
-  // Optimistic update
   if (isOn) {
     state.wishlist.delete(painting.id);
   } else {
@@ -549,7 +530,6 @@ async function handleToggleWishlist(painting, btn) {
       showToast("Added to saved artworks", "success");
     }
   } catch (err) {
-    // Revert on error
     if (isOn) {
       state.wishlist.add(painting.id);
     } else {
@@ -589,33 +569,27 @@ async function openPaintingModal(p) {
 
   const categoryMap = new Map(state.categories.map((c) => [c.id, c.name]));
 
-  // Populate modal
   if (els.modalImage) {
     els.modalImage.src = buildImageUrl(p.image_url);
     els.modalImage.alt = p.title || "Artwork";
   }
   
   if (els.modalTitle) els.modalTitle.textContent = p.title || "Untitled";
-  
   if (els.modalDesc) els.modalDesc.textContent = p.description || "A beautiful original artwork by a talented artist.";
   if (els.modalPrice) els.modalPrice.textContent = formatPrice(p.price);
   if (els.modalCategory) els.modalCategory.textContent = categoryMap.get(p.category_id) || "Artwork";
   
-  // Details
   if (els.modalDimensions) els.modalDimensions.textContent = p.dimensions || "—";
   if (els.modalMedium) els.modalMedium.textContent = p.medium || p.materials || "—";
   if (els.modalYear) els.modalYear.textContent = p.year || new Date(p.created_at).getFullYear() || "—";
   if (els.modalStyle) els.modalStyle.textContent = p.style || categoryMap.get(p.category_id) || "—";
 
-  // Certificate badge
   if (els.modalCertBadge) {
     els.modalCertBadge.classList.toggle("hidden", !p.ipfs_cid);
   }
 
-  // Certificate section
   renderModalCertificateInfo(p);
 
-  // Wishlist state
   if (els.modalWishlistBtn) {
     const isWishlisted = state.wishlist.has(p.id);
     if (isWishlisted) {
@@ -627,20 +601,13 @@ async function openPaintingModal(p) {
     }
   }
 
-  // Reset quantity
   const qtyInput = document.getElementById("qty");
   if (qtyInput) qtyInput.value = 1;
 
-  // Show/hide review form based on login status
   updateReviewFormVisibility();
-  
-  // Reset review form
   resetReviewForm();
-
-  // Load reviews for this painting
   await loadPaintingReviews(p.id);
 
-  // Show modal
   els.modal.classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
@@ -660,10 +627,8 @@ function renderModalCertificateInfo(painting) {
           <div class="flex-1">
             <h4 class="font-semibold text-green-800 text-sm">Hakika ya Kienyeji ✅</h4>
             <p class="text-xs text-green-700 mt-1 mb-3">Blockchain-verified certificate of authenticity</p>
-            <a 
-              href="./verify.html?painting_id=${painting.id}"
-              class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition"
-            >
+            <a href="./verify.html?painting_id=${painting.id}"
+              class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
               </svg>
@@ -710,7 +675,6 @@ function initModalEvents() {
     handleToggleWishlist(state.currentPainting, els.modalWishlistBtn);
   });
 
-  // Add to cart from modal
   document.getElementById("add-to-cart-modal")?.addEventListener("click", () => {
     if (!state.currentPainting) return;
     const qtyInput = document.getElementById("qty");
@@ -718,7 +682,6 @@ function initModalEvents() {
     handleAddToCart(state.currentPainting, qty);
   });
 
-  // Buy now
   document.getElementById("buy-now")?.addEventListener("click", async () => {
     if (!state.currentPainting) return;
     const qtyInput = document.getElementById("qty");
@@ -727,7 +690,6 @@ function initModalEvents() {
     window.location.href = "./cart.html";
   });
 
-  // Quantity controls
   const qtyDecr = document.getElementById("qty-decr");
   const qtyIncr = document.getElementById("qty-incr");
   const qtyInput = document.getElementById("qty");
@@ -745,7 +707,6 @@ function initModalEvents() {
 
 /* ========== Reviews ========== */
 function initReviewEvents() {
-  // Star rating click handlers
   const starBtns = document.querySelectorAll(".star-btn");
   starBtns.forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -753,19 +714,16 @@ function initReviewEvents() {
       setStarRating(rating);
     });
     
-    // Hover effects
     btn.addEventListener("mouseenter", () => {
       const rating = parseInt(btn.dataset.rating, 10);
       highlightStars(rating);
     });
   });
   
-  // Reset stars on mouse leave
   els.starRating?.addEventListener("mouseleave", () => {
     highlightStars(state.selectedRating);
   });
   
-  // Submit review
   els.submitReview?.addEventListener("click", handleSubmitReview);
 }
 
@@ -846,9 +804,7 @@ function renderReviewsSummary() {
   if (count === 0) {
     els.reviewsSummary.innerHTML = `
       <div class="flex items-center gap-2 text-gallery-400">
-        <div class="flex gap-0.5">
-          ${renderStarsHTML(0)}
-        </div>
+        <div class="flex gap-0.5">${renderStarsHTML(0)}</div>
         <span class="text-sm">No reviews yet</span>
       </div>
     `;
@@ -861,13 +817,9 @@ function renderReviewsSummary() {
     <div class="flex items-center gap-4">
       <div class="text-center">
         <div class="text-3xl font-bold text-gallery-900">${avgRating}</div>
-        <div class="flex justify-center mt-1">
-          ${renderStarsHTML(parseFloat(avgRating))}
-        </div>
+        <div class="flex justify-center mt-1">${renderStarsHTML(parseFloat(avgRating))}</div>
       </div>
-      <div class="flex-1 space-y-1">
-        ${renderRatingBarsHTML(reviews)}
-      </div>
+      <div class="flex-1 space-y-1">${renderRatingBarsHTML(reviews)}</div>
     </div>
   `;
 }
@@ -891,7 +843,6 @@ function renderReviewsList() {
   
   els.reviewsList.innerHTML = reviews.map((review) => renderReviewCardHTML(review)).join("");
   
-  // Add event listeners for edit/delete buttons
   reviews.forEach((review) => {
     const editBtn = document.getElementById(`edit-review-${review.id}`);
     const deleteBtn = document.getElementById(`delete-review-${review.id}`);
@@ -908,27 +859,20 @@ function renderStarsHTML(rating, size = "w-4 h-4") {
   
   let html = "";
   
-  // Full stars
   for (let i = 0; i < fullStars; i++) {
     html += `<svg class="${size} text-yellow-400 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>`;
   }
   
-  // Half star
   if (hasHalfStar) {
+    const id = `half-${Math.random().toString(36).substr(2, 9)}`;
     html += `
       <svg class="${size} text-yellow-400" viewBox="0 0 20 20">
-        <defs>
-          <linearGradient id="half-star-${Math.random()}">
-            <stop offset="50%" stop-color="currentColor"/>
-            <stop offset="50%" stop-color="#d1d5db"/>
-          </linearGradient>
-        </defs>
-        <path fill="url(#half-star-${Math.random()})" d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+        <defs><linearGradient id="${id}"><stop offset="50%" stop-color="currentColor"/><stop offset="50%" stop-color="#d1d5db"/></linearGradient></defs>
+        <path fill="url(#${id})" d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
       </svg>
     `;
   }
   
-  // Empty stars
   for (let i = 0; i < emptyStars; i++) {
     html += `<svg class="${size} text-gallery-300 fill-current" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/></svg>`;
   }
@@ -964,9 +908,7 @@ function renderReviewCardHTML(review) {
     <div class="border border-gallery-200 rounded-lg p-3 hover:border-gallery-300 transition">
       <div class="flex items-start justify-between mb-2">
         <div class="flex items-center gap-2">
-          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-gallery-600 flex items-center justify-center text-white text-sm font-medium">
-            ${initial}
-          </div>
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-accent to-gallery-600 flex items-center justify-center text-white text-sm font-medium">${initial}</div>
           <div>
             <div class="text-sm font-medium text-gallery-900">${escapeHtml(review.username || "Anonymous")}</div>
             <div class="flex items-center gap-2">
@@ -978,14 +920,10 @@ function renderReviewCardHTML(review) {
         ${isCurrentUser ? `
           <div class="flex gap-1">
             <button id="edit-review-${review.id}" class="p-1 text-gallery-400 hover:text-gallery-600 transition" title="Edit">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-              </svg>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
             </button>
             <button id="delete-review-${review.id}" class="p-1 text-red-400 hover:text-red-600 transition" title="Delete">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-              </svg>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>
           </div>
         ` : ""}
@@ -1022,7 +960,6 @@ async function handleSubmitReview() {
     return;
   }
   
-  // Disable button while submitting
   if (els.submitReview) {
     els.submitReview.disabled = true;
     els.submitReview.innerHTML = `
@@ -1036,11 +973,9 @@ async function handleSubmitReview() {
   
   try {
     if (state.editingReviewId) {
-      // Update existing review
       await updateReview(state.editingReviewId, { rating, comment }, state.authToken);
       showToast("Review updated successfully!", "success");
     } else {
-      // Create new review
       const reviewData = {
         user_id: state.currentUser.id,
         painting_id: state.currentPainting.id,
@@ -1051,7 +986,6 @@ async function handleSubmitReview() {
       showToast("Review submitted successfully!", "success");
     }
     
-    // Reset form and reload reviews
     resetReviewForm();
     await loadPaintingReviews(state.currentPainting.id);
     
@@ -1090,7 +1024,6 @@ function handleEditReview(review) {
     `;
   }
   
-  // Scroll to form
   els.reviewFormContainer?.scrollIntoView({ behavior: "smooth", block: "center" });
   els.reviewComment?.focus();
   
@@ -1104,7 +1037,6 @@ async function handleDeleteReview(reviewId) {
     await deleteReview(reviewId, state.authToken);
     showToast("Review deleted successfully", "success");
     
-    // Reload reviews
     if (state.currentPainting) {
       await loadPaintingReviews(state.currentPainting.id);
     }
@@ -1130,11 +1062,76 @@ function closeVerificationModal() {
   document.body.style.overflow = "";
 }
 
-/* ========== Search ========== */
+/* ═══════════════════════════════════════════════════════════════
+   SEARCH - Uses searchPaintings() and getSearchSuggestions() from api.js
+   ═══════════════════════════════════════════════════════════════ */
+
+function initSearchEvents() {
+  // Toggle button opens search
+  els.searchToggle?.addEventListener("click", (e) => {
+    e.preventDefault();
+    openSearch();
+  });
+
+  // Close button
+  document.getElementById("close-search")?.addEventListener("click", closeSearch);
+
+  // Close on overlay click
+  els.searchOverlay?.addEventListener("click", (e) => {
+    if (e.target === els.searchOverlay) closeSearch();
+  });
+
+  // Keyboard shortcut: Ctrl+K or Cmd+K
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+      e.preventDefault();
+      if (els.searchOverlay?.classList.contains("hidden")) {
+        openSearch();
+      } else {
+        closeSearch();
+      }
+    }
+  });
+
+  // Search input: live search as you type
+  const quickInput = document.getElementById("quick-search-input");
+  if (quickInput) {
+    quickInput.addEventListener("input", (e) => {
+      clearTimeout(searchDebounce);
+      const query = e.target.value.trim();
+
+      if (query.length < 2) {
+        clearSearchResults();
+        return;
+      }
+
+      searchDebounce = setTimeout(() => {
+        performQuickSearch(query);
+      }, 300);
+    });
+
+    // Enter key → full search page
+    quickInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        const query = quickInput.value.trim();
+        if (query) {
+          window.location.href = `./search.html?q=${encodeURIComponent(query)}`;
+        }
+      }
+    });
+  }
+}
+
 function openSearch() {
   els.searchOverlay?.classList.remove("hidden");
   els.searchOverlay?.classList.add("flex");
-  els.searchInput?.focus();
+
+  const quickInput = document.getElementById("quick-search-input");
+  if (quickInput) {
+    setTimeout(() => quickInput.focus(), 100);
+  }
+
   document.body.style.overflow = "hidden";
 }
 
@@ -1142,6 +1139,142 @@ function closeSearch() {
   els.searchOverlay?.classList.add("hidden");
   els.searchOverlay?.classList.remove("flex");
   document.body.style.overflow = "";
+
+  // Clear input and results
+  const quickInput = document.getElementById("quick-search-input");
+  if (quickInput) quickInput.value = "";
+  clearSearchResults();
+}
+
+function clearSearchResults() {
+  const listEl = document.getElementById("search-suggestions-list");
+  if (listEl) listEl.innerHTML = "";
+
+  document.getElementById("search-loading")?.classList.add("hidden");
+  document.getElementById("search-empty")?.classList.add("hidden");
+}
+
+async function performQuickSearch(query) {
+  const loadingEl = document.getElementById("search-loading");
+  const emptyEl  = document.getElementById("search-empty");
+  const listEl   = document.getElementById("search-suggestions-list");
+
+  // Show loading spinner
+  loadingEl?.classList.remove("hidden");
+  emptyEl?.classList.add("hidden");
+  if (listEl) listEl.innerHTML = "";
+
+  try {
+    // ✅ Call the backend /search endpoint via api.js
+    const result = await searchPaintings({ q: query, per_page: 6 });
+
+    loadingEl?.classList.add("hidden");
+
+    const paintings = result.paintings || [];
+
+    if (paintings.length === 0) {
+      // No results from API → try local fallback
+      const localResults = filterPaintingsLocally(query);
+      if (localResults.length === 0) {
+        emptyEl?.classList.remove("hidden");
+      } else {
+        emptyEl?.classList.add("hidden");
+        renderSearchSuggestions(localResults, query);
+      }
+      return;
+    }
+
+    emptyEl?.classList.add("hidden");
+    renderSearchSuggestions(paintings, query);
+
+  } catch (err) {
+    // API failed → fall back to local filtering
+    console.warn("API search failed, using local filter:", err.message);
+    loadingEl?.classList.add("hidden");
+
+    const localResults = filterPaintingsLocally(query);
+    if (localResults.length === 0) {
+      emptyEl?.classList.remove("hidden");
+    } else {
+      emptyEl?.classList.add("hidden");
+      renderSearchSuggestions(localResults, query);
+    }
+  }
+}
+
+/**
+ * Fallback: filter the paintings already loaded in state
+ */
+function filterPaintingsLocally(query) {
+  const term = query.toLowerCase();
+  return state.paintings
+    .filter((p) =>
+      (p.title       && p.title.toLowerCase().includes(term)) ||
+      (p.description && p.description.toLowerCase().includes(term)) ||
+      (p.materials   && p.materials.toLowerCase().includes(term)) ||
+      (p.location    && p.location.toLowerCase().includes(term))
+    )
+    .slice(0, 6);
+}
+
+/**
+ * Render suggestions in the search overlay
+ */
+function renderSearchSuggestions(paintings, query) {
+  const listEl = document.getElementById("search-suggestions-list");
+  if (!listEl) return;
+
+  const categoryMap = new Map(state.categories.map((c) => [c.id, c.name]));
+
+  listEl.innerHTML = paintings.map((p) => `
+    <div class="flex items-center gap-4 p-4 hover:bg-amber-50 cursor-pointer transition-colors group"
+         onclick="openPaintingFromSearch(${p.id})">
+      <img
+        src="${buildImageUrl(p.image_url)}"
+        alt="${escapeHtml(p.title)}"
+        class="w-14 h-14 rounded-lg object-cover shadow-sm group-hover:shadow-md transition-shadow"
+        onerror="this.src='https://via.placeholder.com/56/F3F4F6/6B7280?text=Art'"
+      >
+      <div class="flex-1 min-w-0">
+        <h4 class="font-medium text-gray-800 truncate group-hover:text-amber-600 transition-colors text-sm">
+          ${highlightMatch(p.title, query)}
+        </h4>
+        <p class="text-xs text-gray-500 mt-0.5">
+          ${p.artist_name || categoryMap.get(p.category_id) || "Artwork"}
+          ${p.materials ? " · " + p.materials : ""}
+        </p>
+        <p class="text-sm text-amber-600 font-semibold mt-1">
+          ${formatPrice(p.price)}
+        </p>
+      </div>
+      ${p.ipfs_cid ? '<span class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full flex-shrink-0">✓ Certified</span>' : ""}
+      <svg class="w-5 h-5 text-gray-300 group-hover:text-amber-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </div>
+  `).join("");
+
+  // "View all results" link at the bottom
+  listEl.innerHTML += `
+    <a href="./search.html?q=${encodeURIComponent(query)}"
+       class="flex items-center justify-center gap-2 p-3 text-amber-600 hover:bg-amber-50 font-medium transition-colors text-sm border-t border-gray-100">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+      </svg>
+      View all results for "${escapeHtml(query)}"
+    </a>
+  `;
+}
+
+/**
+ * Highlight matching text in search results
+ */
+function highlightMatch(text, query) {
+  if (!query || !text) return escapeHtml(text || "");
+  const escaped = escapeHtml(text);
+  const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const regex = new RegExp(`(${safeQuery})`, "gi");
+  return escaped.replace(regex, '<mark class="bg-amber-200 text-gray-800 rounded px-0.5">$1</mark>');
 }
 
 /* ========== Mobile Menu ========== */
@@ -1172,14 +1305,10 @@ function showToast(message, type = "info") {
   }[type];
 
   toast.className = `${bgColor} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-slide-up max-w-xs`;
-  toast.innerHTML = `
-    ${icon}
-    <span class="text-sm font-medium">${message}</span>
-  `;
+  toast.innerHTML = `${icon}<span class="text-sm font-medium">${message}</span>`;
 
   els.toastContainer.appendChild(toast);
 
-  // Remove after 3 seconds
   setTimeout(() => {
     toast.style.opacity = "0";
     toast.style.transform = "translateY(10px)";
@@ -1235,17 +1364,26 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Global functions for onclick handlers
+// ══════════════════════════════════════════════════════════════════
+// GLOBAL FUNCTIONS (for onclick handlers in HTML)
+// ══════════════════════════════════════════════════════════════════
 window.closeVerificationModal = closeVerificationModal;
 window.closePaintingModal = closePaintingModal;
 
 window.copyCID = function (cid) {
   navigator.clipboard
     .writeText(cid)
-    .then(() => {
-      showToast("Certificate ID copied!", "success");
-    })
-    .catch(() => {
-      showToast("Failed to copy", "error");
-    });
+    .then(() => showToast("Certificate ID copied!", "success"))
+    .catch(() => showToast("Failed to copy", "error"));
+};
+
+// ✅ Open painting from search result
+window.openPaintingFromSearch = function (paintingId) {
+  const painting = state.paintings.find((p) => p.id === paintingId);
+  if (painting) {
+    closeSearch();
+    openPaintingModal(painting);
+  } else {
+    window.location.href = `./painting.html?id=${paintingId}`;
+  }
 };

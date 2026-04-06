@@ -313,9 +313,130 @@ class PaintingService:
             logger.exception("Error restoring painting stock")
             return {"message": "Database error"}, 500
 
+    @staticmethod
+    def search_paintings(
+        query=None,
+        category_id=None,
+        min_price=None,
+        max_price=None,
+        artist_id=None,
+        is_available=True,
+        sort_by="created_at",
+        sort_order="desc",
+        page=1,
+        per_page=20
+    ):
+        """
+        Search paintings with filters
+        
+        Args:
+            query: Search text (matches title, description, materials)
+            category_id: Filter by category
+            min_price: Minimum price
+            max_price: Maximum price
+            artist_id: Filter by artist
+            is_available: Only available paintings (default True)
+            sort_by: Field to sort by (created_at, price, title)
+            sort_order: asc or desc
+            page: Page number
+            per_page: Results per page
+        
+        Returns:
+            dict with paintings and pagination info
+        """
+        from models.artist import Artist
+        from models.user import User
+        
+        try:
+            # Base query
+            paintings_query = Painting.query
+            
+            # Filter by availability
+            if is_available:
+                paintings_query = paintings_query.filter(
+                    Painting.is_available == True,
+                    Painting.is_sold == False
+                )
+            
+            # Text search (title, description, materials)
+            if query:
+                search_term = f"%{query.lower()}%"
+                paintings_query = paintings_query.filter(
+                    db.or_(
+                        db.func.lower(Painting.title).like(search_term),
+                        db.func.lower(Painting.description).like(search_term),
+                        db.func.lower(Painting.materials).like(search_term),
+                        db.func.lower(Painting.location).like(search_term)
+                    )
+                )
+            
+            # Filter by category
+            if category_id:
+                paintings_query = paintings_query.filter(Painting.category_id == int(category_id))
+            
+            # Filter by artist
+            if artist_id:
+                paintings_query = paintings_query.filter(Painting.artist_id == int(artist_id))
+            
+            # Filter by price range
+            if min_price is not None:
+                paintings_query = paintings_query.filter(Painting.price >= float(min_price))
+            if max_price is not None:
+                paintings_query = paintings_query.filter(Painting.price <= float(max_price))
+            
+            # Sorting
+            sort_column = getattr(Painting, sort_by, Painting.created_at)
+            if sort_order.lower() == "asc":
+                paintings_query = paintings_query.order_by(sort_column.asc())
+            else:
+                paintings_query = paintings_query.order_by(sort_column.desc())
+            
+            # Get total count before pagination
+            total = paintings_query.count()
+            
+            # Pagination
+            paintings_query = paintings_query.offset((page - 1) * per_page).limit(per_page)
+            
+            # Execute query
+            paintings = paintings_query.all()
+            
+            # Build response with artist info
+            results = []
+            for painting in paintings:
+                p_dict = painting.to_dict()
+                
+                # Add artist name
+                if painting.artist and painting.artist.user:
+                    p_dict['artist_name'] = painting.artist.user.username
+                else:
+                    p_dict['artist_name'] = "Unknown Artist"
+                
+                # Add category name
+                if painting.category:
+                    p_dict['category_name'] = painting.category.name
+                else:
+                    p_dict['category_name'] = "Uncategorized"
+                
+                results.append(p_dict)
+            
+            return {
+                "paintings": results,
+                "pagination": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "pages": (total + per_page - 1) // per_page,
+                    "has_next": page * per_page < total,
+                    "has_prev": page > 1
+                }
+            }, 200
+            
+        except Exception as e:
+            logger.exception("Error searching paintings")
+            return {"error": str(e)}, 500
 
+
+            
+        
 
         
-    
-
-    
