@@ -118,7 +118,7 @@ function createZuriWidget() {
             </svg>
           </button>
         </form>
-        <p class="text-center text-xs text-gray-400 mt-2">Powered by Claude AI · SANAA Kenya</p>
+        <p class="text-center text-xs text-gray-400 mt-2">AI-Powered · SANAA Kenya</p>
       </div>
     </div>
   `;
