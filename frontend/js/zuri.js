@@ -1,5 +1,6 @@
 // js/zuri.js
-// Zuri — SANAA's AI Art Assistant Chat Widget
+// Zuri — SANAA's AI Art Assistant Chat Widget v2.0
+// Features: Cart Integration + Certificate Verification
 
 import { API_BASE_URL } from "./api.js";
 
@@ -17,7 +18,6 @@ const zuriState = {
 // CREATE CHAT WIDGET
 // ══════════════════════════════════════════════════════════════════
 function createZuriWidget() {
-  // Don't create if already exists
   if (document.getElementById("zuri-widget")) return;
 
   const widget = document.createElement("div");
@@ -29,24 +29,20 @@ function createZuriWidget() {
       class="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-50 group hover:scale-110"
       title="Chat with Zuri"
     >
-      <!-- Chat icon -->
       <svg id="zuri-icon-chat" class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
       </svg>
-      <!-- Close icon -->
       <svg id="zuri-icon-close" class="w-7 h-7 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
       </svg>
-      
-      <!-- Pulse animation -->
       <span class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white animate-pulse"></span>
     </button>
 
     <!-- Chat Window -->
     <div 
       id="zuri-chat" 
-      class="hidden fixed bottom-24 right-6 w-[360px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col"
-      style="height: 520px; max-height: calc(100vh - 8rem);"
+      class="hidden fixed bottom-24 right-6 w-[380px] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl z-50 overflow-hidden flex flex-col"
+      style="height: 550px; max-height: calc(100vh - 8rem);"
     >
       <!-- Header -->
       <div class="bg-gradient-to-r from-amber-500 to-orange-600 px-4 py-3 flex items-center justify-between flex-shrink-0">
@@ -55,7 +51,10 @@ function createZuriWidget() {
             <span class="text-xl">🎨</span>
           </div>
           <div>
-            <h3 class="text-white font-semibold text-sm">Zuri</h3>
+            <h3 class="text-white font-semibold text-sm flex items-center gap-2">
+              Zuri
+              <span class="text-[10px] bg-green-500/80 text-white px-2 py-0.5 rounded-full">v2.0</span>
+            </h3>
             <p class="text-white/80 text-xs">SANAA Art Assistant</p>
           </div>
         </div>
@@ -77,21 +76,21 @@ function createZuriWidget() {
               Habari! 👋 I'm <strong>Zuri</strong>, your art assistant at SANAA.
             </p>
             <p class="text-sm text-gray-700 mt-2">
-              I can help you discover paintings, understand our blockchain certificates, or guide you through buying. What are you looking for today?
+              I can help you discover paintings, verify certificates, or even add art to your cart! What are you looking for today?
             </p>
             <!-- Quick actions -->
             <div class="flex flex-wrap gap-2 mt-3">
               <button onclick="zuriQuickMessage('Show me landscape paintings')" class="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs hover:bg-amber-100 transition">
                 🏞️ Landscapes
               </button>
-              <button onclick="zuriQuickMessage('What is Hakika ya Kienyeji?')" class="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs hover:bg-amber-100 transition">
-                📜 Certificates
+              <button onclick="zuriQuickMessage('Recommend something under 20000')" class="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs hover:bg-amber-100 transition">
+                💰 Under 20K
               </button>
               <button onclick="zuriQuickMessage('How do I buy art here?')" class="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs hover:bg-amber-100 transition">
                 🛒 How to buy
               </button>
-              <button onclick="zuriQuickMessage('Recommend something under 20000')" class="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs hover:bg-amber-100 transition">
-                💰 Budget picks
+              <button onclick="zuriQuickMessage('What is Hakika ya Kienyeji?')" class="px-3 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs hover:bg-amber-100 transition">
+                📜 Certificates
               </button>
             </div>
           </div>
@@ -104,7 +103,7 @@ function createZuriWidget() {
           <input 
             type="text" 
             id="zuri-input"
-            placeholder="Ask Zuri about art..."
+            placeholder="Try: 'Add Sunset to cart' or 'Verify Maasai'"
             class="flex-1 px-4 py-2.5 rounded-full border border-gray-200 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-sm"
             autocomplete="off"
           >
@@ -118,7 +117,7 @@ function createZuriWidget() {
             </svg>
           </button>
         </form>
-        <p class="text-center text-xs text-gray-400 mt-2">AI-Powered · SANAA Kenya</p>
+        <p class="text-center text-xs text-gray-400 mt-2">🛒 Cart + 📜 Certificates · SANAA Kenya</p>
       </div>
     </div>
   `;
@@ -163,7 +162,6 @@ function toggleZuriChat() {
     iconChat?.classList.add("hidden");
     iconClose?.classList.remove("hidden");
     
-    // Focus input
     setTimeout(() => {
       document.getElementById("zuri-input")?.focus();
     }, 100);
@@ -183,42 +181,50 @@ async function sendMessage(message) {
 
   // Add user message to UI
   addMessageToUI("user", message);
-  
-  // Add to history
   zuriState.messages.push({ role: "user", content: message });
 
   // Show typing indicator
   zuriState.isLoading = true;
   const typingId = showTypingIndicator();
   
-  // Disable send button
   const sendBtn = document.getElementById("zuri-send");
   if (sendBtn) sendBtn.disabled = true;
 
   try {
+    // Get auth token if logged in
+    const token = localStorage.getItem("access_token");
+    
+    const headers = {
+      "Content-Type": "application/json",
+    };
+    
+    // Add auth header if token exists
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/zuri/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: headers,
       body: JSON.stringify({
         message: message,
-        history: zuriState.messages.slice(-10), // Last 10 messages
+        history: zuriState.messages.slice(-10),
       }),
     });
 
     const data = await response.json();
-    
-    // Remove typing indicator
     removeTypingIndicator(typingId);
 
     const reply = data.reply || "I couldn't process that. Please try again! 🎨";
     
-    // Add assistant reply to UI
-    addMessageToUI("assistant", reply);
-    
-    // Add to history
+    // Add assistant reply to UI with action data
+    addMessageToUI("assistant", reply, data);
     zuriState.messages.push({ role: "assistant", content: reply });
+
+    // If item was added to cart, dispatch event to update cart UI
+    if (data.cart_action && data.action === "added_to_cart") {
+      window.dispatchEvent(new CustomEvent("cartUpdated"));
+    }
 
   } catch (err) {
     console.error("Zuri error:", err);
@@ -234,7 +240,7 @@ async function sendMessage(message) {
 // ══════════════════════════════════════════════════════════════════
 // UI HELPERS
 // ══════════════════════════════════════════════════════════════════
-function addMessageToUI(role, content) {
+function addMessageToUI(role, content, data = {}) {
   const messagesContainer = document.getElementById("zuri-messages");
   if (!messagesContainer) return;
 
@@ -250,8 +256,62 @@ function addMessageToUI(role, content) {
       </div>
     `;
   } else {
-    // Format assistant message with markdown-like formatting
     const formatted = formatZuriMessage(content);
+    
+    // Build action buttons based on response type
+    let actionButtons = "";
+    
+    // Cart action buttons
+    if (data.cart_action) {
+      if (data.action === "added_to_cart" || data.action === "already_in_cart") {
+        actionButtons = `
+          <div class="flex flex-wrap gap-2 mt-3">
+            <a href="/cart.html" class="px-4 py-2 bg-amber-600 text-white rounded-full text-xs hover:bg-amber-700 transition flex items-center gap-1">
+              🛒 View Cart
+            </a>
+            <a href="/checkout.html" class="px-4 py-2 bg-green-600 text-white rounded-full text-xs hover:bg-green-700 transition flex items-center gap-1">
+              ✅ Checkout
+            </a>
+            <button onclick="zuriQuickMessage('Show me more paintings')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full text-xs hover:bg-gray-300 transition">
+              Keep Browsing
+            </button>
+          </div>
+        `;
+      } else if (data.action === "login_required") {
+        actionButtons = `
+          <div class="flex flex-wrap gap-2 mt-3">
+            <a href="/login.html" class="px-4 py-2 bg-amber-600 text-white rounded-full text-xs hover:bg-amber-700 transition flex items-center gap-1">
+              🔐 Log In
+            </a>
+            <a href="/register.html" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-full text-xs hover:bg-gray-300 transition">
+              Create Account
+            </a>
+          </div>
+        `;
+      }
+    }
+    
+    // Certificate action buttons
+    if (data.certificate_action && data.painting) {
+      const painting = data.painting;
+      const ipfsCid = painting.ipfs_cid || "";
+      
+      actionButtons = `
+        <div class="flex flex-wrap gap-2 mt-3">
+          <a href="/paintings/${painting.id}.html" class="px-4 py-2 bg-amber-600 text-white rounded-full text-xs hover:bg-amber-700 transition flex items-center gap-1">
+            🎨 View Painting
+          </a>
+          ${ipfsCid ? `
+            <a href="https://ipfs.io/ipfs/${ipfsCid}" target="_blank" class="px-4 py-2 bg-purple-600 text-white rounded-full text-xs hover:bg-purple-700 transition flex items-center gap-1">
+              🔗 View Certificate
+            </a>
+          ` : ''}
+          <button onclick="zuriQuickMessage('Add ${painting.title} to cart')" class="px-4 py-2 bg-green-600 text-white rounded-full text-xs hover:bg-green-700 transition">
+            🛒 Add to Cart
+          </button>
+        </div>
+      `;
+    }
     
     messageDiv.innerHTML = `
       <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -259,6 +319,7 @@ function addMessageToUI(role, content) {
       </div>
       <div class="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm max-w-[85%]">
         <div class="text-sm text-gray-700 zuri-message">${formatted}</div>
+        ${actionButtons}
       </div>
     `;
   }
@@ -268,23 +329,32 @@ function addMessageToUI(role, content) {
 }
 
 function formatZuriMessage(text) {
-  // Convert markdown-like formatting to HTML
+  if (!text) return "";
+  
   let html = escapeHtml(text);
   
   // Bold: **text** → <strong>text</strong>
-  html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   
   // Italic: *text* → <em>text</em>
-  html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
   
-  // Bullet points: - item → • item
-  html = html.replace(/^- (.+)$/gm, '<span class="block ml-2">• $1</span>');
+  // Code: `text` → <code>text</code>
+  html = html.replace(/`(.+?)`/g, '<code class="bg-gray-100 px-1 rounded text-xs">$1</code>');
+  
+  // Bullet points: • item or - item
+  html = html.replace(/^[•\-] (.+)$/gm, '<span class="block ml-2">• $1</span>');
   
   // Numbered lists: 1. item
   html = html.replace(/^(\d+)\. (.+)$/gm, '<span class="block ml-2">$1. $2</span>');
   
-  // Line breaks
+  // Horizontal lines: ━━━ or ---
+  html = html.replace(/[━\-]{3,}/g, '<hr class="my-2 border-gray-200">');
+  
+  // Double line breaks → paragraphs
   html = html.replace(/\n\n/g, '</p><p class="mt-2">');
+  
+  // Single line breaks
   html = html.replace(/\n/g, '<br>');
   
   // Wrap in paragraph
@@ -307,9 +377,9 @@ function showTypingIndicator() {
     </div>
     <div class="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm">
       <div class="flex items-center gap-1">
-        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-        <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+        <div class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+        <div class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+        <div class="w-2 h-2 bg-amber-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
       </div>
     </div>
   `;
@@ -340,7 +410,7 @@ function escapeHtml(text) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// QUICK MESSAGES
+// QUICK MESSAGES (Global function)
 // ══════════════════════════════════════════════════════════════════
 window.zuriQuickMessage = function(message) {
   const input = document.getElementById("zuri-input");
@@ -353,7 +423,7 @@ window.zuriQuickMessage = function(message) {
 // ══════════════════════════════════════════════════════════════════
 function initZuri() {
   createZuriWidget();
-  console.log("🎨 Zuri AI Assistant initialized");
+  console.log("🎨 Zuri AI Assistant v2.0 initialized (Cart + Certificates)");
 }
 
 // Auto-initialize when DOM is ready
@@ -379,5 +449,16 @@ style.textContent = `
   .zuri-message p:last-child {
     margin-bottom: 0;
   }
+  .zuri-message hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 8px 0;
+  }
+  #zuri-chat {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
 `;
 document.head.appendChild(style);
+
+// Export for module usage
+export { initZuri, sendMessage, toggleZuriChat };
