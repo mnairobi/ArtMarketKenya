@@ -1,5 +1,5 @@
 # controllers/zuri.py
-# Zuri — SANAA's AI Art Assistant (Claude-powered)
+# Zuri — SANAA's AI Art Assistant (FREE Groq-powered)
 
 from flask_restful import Resource
 from flask import request, current_app
@@ -72,7 +72,7 @@ IMPORTANT RULES:
 class ZuriChatResource(Resource):
     def post(self):
         """
-        Chat with Zuri AI assistant
+        Chat with Zuri AI assistant (FREE Groq-powered)
         
         Body:
         {
@@ -91,8 +91,8 @@ class ZuriChatResource(Resource):
         user_message = data["message"].strip()
         history = data.get("history", [])
         
-        # Get API key from environment
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        # Get API key from environment (Groq is FREE!)
+        api_key = os.getenv("GROQ_API_KEY")
         
         if not api_key:
             return {
@@ -101,8 +101,10 @@ class ZuriChatResource(Resource):
             }, 200
         
         try:
-            # Build messages array
-            messages = []
+            # Build messages array (OpenAI-compatible format)
+            messages = [
+                {"role": "system", "content": ZURI_SYSTEM_PROMPT}
+            ]
             
             # Add conversation history (last 10 messages max)
             for msg in history[-10:]:
@@ -118,36 +120,41 @@ class ZuriChatResource(Resource):
                 "content": user_message
             })
             
-            # Call Anthropic Claude API
+            # Call Groq API (FREE & FAST!)
             response = requests.post(
-                "https://api.anthropic.com/v1/messages",
+                "https://api.groq.com/openai/v1/chat/completions",
                 headers={
                     "Content-Type": "application/json",
-                    "x-api-key": api_key,
-                    "anthropic-version": "2023-06-01"
+                    "Authorization": f"Bearer {api_key}"
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "llama-3.1-70b-versatile",  # FREE unlimited usage!
+                    # Alternative models (all free):
+                    # "mixtral-8x7b-32768" - great multilingual
+                    # "llama-3.3-70b-versatile" - newest, best
+                    # "gemma2-9b-it" - fast & smart
+                    
+                    "messages": messages,
                     "max_tokens": 500,
-                    "system": ZURI_SYSTEM_PROMPT,
-                    "messages": messages
+                    "temperature": 0.7,
+                    "top_p": 0.9
                 },
                 timeout=30
             )
             
             if response.status_code != 200:
-                print(f"Anthropic API error: {response.status_code} - {response.text}")
+                print(f"Groq API error: {response.status_code} - {response.text}")
                 return {
                     "reply": "I'm having a moment — please try again! In the meantime, explore our beautiful collection on the homepage. 🎨",
                     "error": "API error"
                 }, 200
             
             result = response.json()
-            reply = result["content"][0]["text"]
+            reply = result["choices"][0]["message"]["content"]
             
             return {
                 "reply": reply,
-                "model": result.get("model", "claude"),
+                "model": result.get("model", "llama-3.1-70b"),
                 "usage": result.get("usage", {})
             }, 200
             
@@ -168,12 +175,14 @@ class ZuriChatResource(Resource):
 class ZuriHealthResource(Resource):
     def get(self):
         """Check if Zuri is available"""
-        api_key = os.getenv("ANTHROPIC_API_KEY")
+        api_key = os.getenv("GROQ_API_KEY")
         
         return {
             "status": "online" if api_key else "offline",
             "assistant": "Zuri",
             "platform": "SANAA Kenya",
+            "model": "Llama 3.1 70B (Groq)",
+            "cost": "FREE unlimited 🎉",
             "capabilities": [
                 "Art recommendations",
                 "Certificate verification help",
