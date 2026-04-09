@@ -192,8 +192,8 @@ async function sendMessage(message) {
 
   try {
     // Get auth token if logged in
-    const token = localStorage.getItem("access_token");
-    
+    const token = localStorage.getItem("auth_token");
+
     const headers = {
       "Content-Type": "application/json",
     };
