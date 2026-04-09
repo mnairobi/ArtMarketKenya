@@ -128,11 +128,11 @@ class ZuriChatResource(Resource):
                     "Authorization": f"Bearer {api_key}"
                 },
                 json={
-                    "model": "llama-3.1-70b-versatile",  # FREE unlimited usage!
-                    # Alternative models (all free):
-                    # "mixtral-8x7b-32768" - great multilingual
-                    # "llama-3.3-70b-versatile" - newest, best
-                    # "gemma2-9b-it" - fast & smart
+                    "model": "llama-3.3-70b-versatile",  # ✅ FIXED - Latest model
+                    # Other free alternatives:
+                    # "llama-3.1-8b-instant" - fastest
+                    # "mixtral-8x7b-32768" - great for longer context
+                    # "gemma2-9b-it" - Google's model
                     
                     "messages": messages,
                     "max_tokens": 500,
