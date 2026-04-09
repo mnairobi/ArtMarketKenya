@@ -27,7 +27,7 @@ from controllers.certificate import CertificateIssueResource, CertificateVerifyR
 from controllers.passwordReset import ForgotPasswordResource,ResetPasswordResource,ValidateResetTokenResource
 from controllers.admin import CreateAdminResource,PromoteToAdminResource,UserSuspendResource,UserActivateResource
 from controllers.search import SearchPaintingsResource, SearchSuggestionsResource
-
+from controllers.zuri import ZuriChatResource,ZuriHealthResource
 from controllers.setup import DatabaseSetupResource, DatabaseSeedResource
 
 
@@ -203,3 +203,7 @@ def register_routes(app):
         # Search routes
     api.add_resource(SearchPaintingsResource, '/search')
     api.add_resource(SearchSuggestionsResource, '/search/suggestions')
+
+        # Zuri AI Assistant
+    api.add_resource(ZuriChatResource, '/api/zuri/chat')
+    api.add_resource(ZuriHealthResource, '/api/zuri/health')
