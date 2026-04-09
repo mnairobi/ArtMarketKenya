@@ -281,12 +281,17 @@ class ZuriChatResource(Resource):
         user_message = data["message"].strip()
         history = data.get("history", [])
         
+        # ✅ FIXED: Convert user_id to integer
         user_id = None
         try:
             from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
             verify_jwt_in_request(optional=True)
-            user_id = get_jwt_identity()
-        except:
+            user_id_raw = get_jwt_identity()
+            if user_id_raw:
+                user_id = int(user_id_raw) if isinstance(user_id_raw, str) else user_id_raw
+                print(f"✅ User ID detected: {user_id} (type: {type(user_id).__name__})")
+        except Exception as e:
+            print(f"JWT error: {e}")
             pass
         
         # Check certificate verification
@@ -371,8 +376,6 @@ class ZuriChatResource(Resource):
         except Exception as e:
             print(f"Zuri error: {e}")
             return {"reply": "Something went wrong. Try again!", "error": str(e)}, 200
-
-
 class ZuriHealthResource(Resource):
     def get(self):
         """Check if Zuri is available"""
