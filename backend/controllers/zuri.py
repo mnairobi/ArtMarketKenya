@@ -6,17 +6,12 @@ from flask import request
 import requests
 import os
 import re
+
 from models.painting import Painting
-from models.artist import Artist
-from models.category import Category
 from models.cart import Cart
 from models.cartItem import CartItem
 from services.extensions import db
 
-
-# ══════════════════════════════════════════════════════════════════
-# DATABASE HELPERS
-# ══════════════════════════════════════════════════════════════════
 
 def get_real_paintings():
     """Fetch actual AVAILABLE paintings from SANAA database"""
@@ -58,85 +53,35 @@ def get_real_paintings():
         
         return paintings_list
     except Exception as e:
-        print(f"❌ Error fetching paintings: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error fetching paintings: {e}")
         return []
 
 
 def build_paintings_context(paintings, user_budget=None):
     """Format paintings into text for the AI"""
     if not paintings:
-        return "\n⚠️ NO PAINTINGS CURRENTLY AVAILABLE - Tell users to check homepage for latest uploads."
+        return "\nNO PAINTINGS CURRENTLY AVAILABLE - Tell users to check homepage."
     
     if user_budget:
         paintings = [p for p in paintings if p['price'] <= user_budget]
         if not paintings:
-            return f"\n⚠️ No paintings found under KSH {user_budget:,}. Suggest browsing all artworks."
+            return f"\nNo paintings found under KSH {user_budget:,}."
     
-    lines = [f"\n📊 CURRENT AVAILABLE PAINTINGS ({len(paintings)} in stock):"]
-    lines.append("⚠️ ONLY RECOMMEND THESE REAL PAINTINGS — NEVER INVENT FAKE ONES!\n")
+    lines = [f"\nCURRENT AVAILABLE PAINTINGS ({len(paintings)} in stock):"]
     
-    budget_friendly = [p for p in paintings if p['price'] < 10000]
-    mid_range = [p for p in paintings if 10000 <= p['price'] < 30000]
-    premium = [p for p in paintings if 30000 <= p['price'] < 100000]
-    collector = [p for p in paintings if p['price'] >= 100000]
-    
-    if budget_friendly:
-        lines.append("💰 BUDGET-FRIENDLY (Under KSH 10,000):")
-        for p in budget_friendly[:10]:
-            lines.append(format_painting_line(p))
-    
-    if mid_range:
-        lines.append("\n💎 MID-RANGE (KSH 10,000 - 30,000):")
-        for p in mid_range[:10]:
-            lines.append(format_painting_line(p))
-    
-    if premium:
-        lines.append("\n🏆 PREMIUM (KSH 30,000 - 100,000):")
-        for p in premium[:10]:
-            lines.append(format_painting_line(p))
-    
-    if collector:
-        lines.append("\n👑 COLLECTOR PIECES (Above KSH 100,000):")
-        for p in collector[:5]:
-            lines.append(format_painting_line(p))
+    for p in paintings:
+        line = f"  - \"{p['title']}\" by {p['artist']} - KSH {p['price']:,.0f}"
+        if p.get('category'):
+            line += f" [{p['category']}]"
+        if p.get('stock', 0) <= 3:
+            line += f" (Only {p['stock']} left!)"
+        lines.append(line)
     
     return "\n".join(lines)
 
 
-def format_painting_line(p):
-    """Format a single painting for AI context"""
-    line = f"  • \"{p['title']}\" by {p['artist']} — KSH {p['price']:,.0f}"
-    
-    if p.get('category'):
-        line += f" [{p['category']}]"
-    
-    if p.get('materials'):
-        line += f" ({p['materials']})"
-    
-    if p.get('stock', 0) <= 3:
-        line += f" ⚠️ Only {p['stock']} left!"
-    
-    cert_status = "✅ Certified" if p.get('has_certificate') else "⏳ Pending cert"
-    line += f" {cert_status}"
-    
-    if p.get('description'):
-        desc = p['description'][:80] + "..." if len(p['description']) > 80 else p['description']
-        line += f"\n    → {desc}"
-    
-    return line
-
-
-# ══════════════════════════════════════════════════════════════════
-# FEATURE #1: ADD TO CART
-# ══════════════════════════════════════════════════════════════════
-
 def handle_cart_action(message, user_id=None):
-    """
-    Detect if user wants to add painting to cart
-    Returns: (action_taken, painting_info, response_text)
-    """
+    """Detect if user wants to add painting to cart"""
     add_patterns = [
         r'add ["\']?(.+?)["\']? to (?:my )?cart',
         r'add (.+?) to (?:my )?cart',
@@ -144,26 +89,17 @@ def handle_cart_action(message, user_id=None):
         r'i want (.+?)$',
         r'buy ["\']?(.+?)["\']?$',
         r'buy (.+?)$',
-        r'purchase ["\']?(.+?)["\']?$',
-        r'purchase (.+?)$',
-        r'get me ["\']?(.+?)["\']?$',
-        r'get me (.+?)$',
-        r'i\'ll take ["\']?(.+?)["\']?$',
-        r'i\'ll take (.+?)$',
     ]
     
     for pattern in add_patterns:
         match = re.search(pattern, message.lower().strip())
         if match:
             painting_name = match.group(1).strip()
-            
-            # Remove common words that might interfere
-            painting_name = re.sub(r'\b(the|a|an|please|pls)\b', '', painting_name).strip()
+            painting_name = re.sub(r'\b(the|a|an|please)\b', '', painting_name).strip()
             
             if len(painting_name) < 2:
                 continue
             
-            # Find painting by title (fuzzy match)
             painting = Painting.query.filter(
                 Painting.title.ilike(f"%{painting_name}%"),
                 Painting.is_available == True,
@@ -180,11 +116,9 @@ def handle_cart_action(message, user_id=None):
                     "title": painting.title,
                     "artist": artist_name,
                     "price": float(painting.price),
-                    "image_url": painting.image_url,
                     "ipfs_cid": painting.ipfs_cid or ""
                 }
                 
-                # If user is logged in, add to cart
                 if user_id:
                     try:
                         cart = Cart.query.filter_by(user_id=user_id).first()
@@ -193,7 +127,6 @@ def handle_cart_action(message, user_id=None):
                             db.session.add(cart)
                             db.session.commit()
                         
-                        # Check if already in cart
                         existing_item = CartItem.query.filter_by(
                             cart_id=cart.id,
                             painting_id=painting.id
@@ -203,10 +136,9 @@ def handle_cart_action(message, user_id=None):
                             return (
                                 "already_in_cart",
                                 painting_info,
-                                f"'{painting.title}' is already in your cart! 🛒\n\nReady to checkout?"
+                                f"'{painting.title}' is already in your cart! Ready to checkout?"
                             )
                         
-                        # Add to cart
                         cart_item = CartItem(
                             cart_id=cart.id,
                             painting_id=painting.id,
@@ -218,65 +150,43 @@ def handle_cart_action(message, user_id=None):
                         return (
                             "added_to_cart",
                             painting_info,
-                            f"✅ Added to cart!\n\n🎨 **{painting.title}** by {artist_name}\n💰 KSH {painting.price:,.0f}\n\nReady to checkout or keep browsing? 🛒"
+                            f"Added to cart!\n\n{painting.title} by {artist_name}\nKSH {painting.price:,.0f}\n\nReady to checkout?"
                         )
                     except Exception as e:
                         print(f"Cart error: {e}")
-                        import traceback
-                        traceback.print_exc()
-                        return (
-                            "error", 
-                            painting_info, 
-                            f"I found '{painting.title}' but had trouble adding to cart. Please try from the painting page!"
-                        )
+                        return ("error", painting_info, "Had trouble adding to cart. Please try from the painting page!")
                 else:
-                    # Not logged in
                     return (
                         "login_required",
                         painting_info,
-                        f"Great choice! 🎨\n\n**{painting.title}** by {artist_name}\n💰 KSH {painting.price:,.0f}\n\nPlease **log in** to add this to your cart! 🔐"
+                        f"Great choice! {painting.title} by {artist_name} (KSH {painting.price:,.0f})\n\nPlease log in to add to cart!"
                     )
             else:
-                return (
-                    "not_found", 
-                    None, 
-                    f"I couldn't find a painting called '{painting_name}'. Can you try the exact title from my recommendations?"
-                )
+                return ("not_found", None, f"I couldn't find '{painting_name}'. Try the exact title?")
     
     return (None, None, None)
 
 
-# ══════════════════════════════════════════════════════════════════
-# FEATURE #2: CERTIFICATE VERIFICATION
-# ══════════════════════════════════════════════════════════════════
-
 def verify_certificate(message):
-    """
-    Check if user wants to verify a painting's certificate
-    Returns: (action, painting_info, response)
-    """
+    """Check if user wants to verify a painting certificate"""
     verify_patterns = [
         r'verify ["\']?(.+?)["\']?$',
-        r'verify ["\']?(.+?)["\']?\s',
-        r'check (?:certificate|cert|authenticity) (?:for |of )?["\']?(.+?)["\']?$',
-        r'is ["\']?(.+?)["\']? (?:authentic|real|genuine)',
-        r'show (?:certificate|cert) (?:for |of )?["\']?(.+?)["\']?$',
+        r'verify (.+?)$',
+        r'is ["\']?(.+?)["\']? authentic',
+        r'is (.+?) authentic',
         r'certificate (?:for |of )?["\']?(.+?)["\']?$',
-        r'authenticity (?:of |for )?["\']?(.+?)["\']?$',
+        r'certificate (?:for |of )?(.+?)$',
     ]
     
     for pattern in verify_patterns:
         match = re.search(pattern, message.lower().strip())
         if match:
             painting_name = match.group(1).strip()
-            
-            # Remove common words
-            painting_name = re.sub(r'\b(the|a|an|please|pls|painting|art|artwork)\b', '', painting_name).strip()
+            painting_name = re.sub(r'\b(the|a|an|please|painting)\b', '', painting_name).strip()
             
             if len(painting_name) < 2:
                 continue
             
-            # Find painting
             painting = Painting.query.filter(
                 Painting.title.ilike(f"%{painting_name}%")
             ).first()
@@ -291,65 +201,188 @@ def verify_certificate(message):
                     "title": painting.title,
                     "artist": artist_name,
                     "price": float(painting.price),
-                    "image_url": painting.image_url,
                     "ipfs_cid": painting.ipfs_cid or "",
                     "has_certificate": bool(painting.ipfs_cid)
                 }
                 
                 if painting.ipfs_cid:
-                    response = f"""✅ **VERIFIED AUTHENTIC**
+                    response = f"""VERIFIED AUTHENTIC
 
-🎨 **{painting.title}**
-👨‍🎨 Artist: {artist_name}
-💰 Price: KSH {painting.price:,.0f}
+{painting.title} by {artist_name}
+KSH {painting.price:,.0f}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━
+Hakika ya Kienyeji Certificate:
+IPFS CID: {painting.ipfs_cid}
 
-📜 **Hakika ya Kienyeji Certificate**
-
-🔗 **IPFS CID:** 
-`{painting.ipfs_cid}`
-
-✅ Permanently recorded on blockchain
-🔐 Tamper-proof authenticity guarantee
-📅 Verified and timestamped
-
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-**This certificate guarantees:**
-• Original artwork by {artist_name}
-• Unique piece with provenance
-• Blockchain-verified authenticity
-• Scan QR code on painting to verify
-
-Trust guaranteed by IPFS technology! 🛡️"""
+Permanently recorded on blockchain.
+Scan QR code on painting to verify."""
                 else:
-                    response = f"""⏳ **Certificate Pending**
+                    response = f"""Certificate Pending
 
-🎨 **{painting.title}**
-👨‍🎨 Artist: {artist_name}
-💰 Price: KSH {painting.price:,.0f}
+{painting.title} by {artist_name}
+KSH {painting.price:,.0f}
 
-━━━━━━━━━━━━━━━━━━━━━━━━━
-
-This painting is awaiting its **Hakika ya Kienyeji** certificate.
-
-Once the artist uploads verification, it will receive:
-• Unique IPFS blockchain certificate
-• QR code for instant verification  
-• Permanent authenticity record
-• Full provenance documentation
-
-The certificate will be added soon! 📧
-
-You can still purchase this artwork - the certificate will be provided upon delivery."""
+This painting is awaiting its Hakika ya Kienyeji certificate.
+You can still purchase - certificate will be provided upon delivery."""
                 
                 return ("verified", painting_info, response)
             else:
-                return (
-                    "not_found", 
-                    None, 
-                    f"I couldn't find a painting called '{painting_name}'. Can you try the exact title?"
-                )
+                return ("not_found", None, f"I couldn't find '{painting_name}'. Try the exact title?")
     
-    
+    return (None, None, None)
+
+
+ZURI_SYSTEM_PROMPT = """You are Zuri, the friendly AI art assistant for SANAA - Kenya's premier online art marketplace.
+
+ABOUT SANAA:
+- SANAA (sanaa-ke.vercel.app) is a digital marketplace for authentic Kenyan paintings
+- Every artwork comes with a blockchain-verified "Hakika ya Kienyeji" certificate
+- Payments via M-Pesa or Cash on Delivery
+
+YOUR ROLE:
+- Help buyers discover paintings based on budget, style, room, or mood
+- ONLY recommend paintings from the list below - NEVER make up fake ones
+- Explain the certificate verification process
+- Guide users through buying
+
+PRICE GUIDANCE:
+- Budget-friendly: Under KSH 10,000
+- Mid-range: KSH 10,000 - 30,000
+- Premium: KSH 30,000+
+
+CART COMMANDS (Tell users!):
+- "Add [painting name] to cart"
+- "I want [painting name]"
+- "Buy [painting name]"
+
+CERTIFICATE COMMANDS:
+- "Verify [painting name]"
+- "Is [painting name] authentic?"
+
+RULES:
+1. ONLY recommend paintings from the list below
+2. NEVER invent fake paintings or artists
+3. Keep responses under 200 words
+4. Use Swahili greetings occasionally (Habari! Karibu!)
+5. Be warm and helpful
+
+{paintings_context}
+"""
+
+
+class ZuriChatResource(Resource):
+    def post(self):
+        """Chat with Zuri AI assistant"""
+        data = request.get_json()
+        
+        if not data or not data.get("message"):
+            return {"error": "Message is required"}, 400
+        
+        user_message = data["message"].strip()
+        history = data.get("history", [])
+        
+        user_id = None
+        try:
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+            verify_jwt_in_request(optional=True)
+            user_id = get_jwt_identity()
+        except:
+            pass
+        
+        # Check certificate verification
+        verify_action, painting_info, verify_response = verify_certificate(user_message)
+        if verify_action:
+            return {
+                "reply": verify_response,
+                "action": verify_action,
+                "painting": painting_info,
+                "certificate_action": True
+            }, 200
+        
+        # Check cart action
+        cart_action, painting_info, cart_response = handle_cart_action(user_message, user_id)
+        if cart_action:
+            return {
+                "reply": cart_response,
+                "action": cart_action,
+                "painting": painting_info,
+                "cart_action": True
+            }, 200
+        
+        # Normal AI chat
+        api_key = os.getenv("GROQ_API_KEY")
+        
+        if not api_key:
+            return {
+                "reply": "I'm not available right now. Please browse sanaa-ke.vercel.app!",
+                "error": "AI not configured"
+            }, 200
+        
+        try:
+            real_paintings = get_real_paintings()
+            
+            user_budget = None
+            if "under" in user_message.lower() or "below" in user_message.lower():
+                budget_match = re.search(r'(\d+)', user_message)
+                if budget_match:
+                    user_budget = int(budget_match.group(1))
+            
+            paintings_context = build_paintings_context(real_paintings, user_budget)
+            system_prompt = ZURI_SYSTEM_PROMPT.format(paintings_context=paintings_context)
+            
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            for msg in history[-10:]:
+                if msg.get("role") in ["user", "assistant"] and msg.get("content"):
+                    messages.append({"role": msg["role"], "content": msg["content"]})
+            
+            messages.append({"role": "user", "content": user_message})
+            
+            response = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {api_key}"
+                },
+                json={
+                    "model": "llama-3.3-70b-versatile",
+                    "messages": messages,
+                    "max_tokens": 500,
+                    "temperature": 0.7
+                },
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                print(f"Groq error: {response.status_code} - {response.text}")
+                return {"reply": "I'm having a moment - try again!", "error": "API error"}, 200
+            
+            result = response.json()
+            reply = result["choices"][0]["message"]["content"]
+            
+            return {
+                "reply": reply,
+                "model": "llama-3.3-70b",
+                "paintings_available": len(real_paintings)
+            }, 200
+            
+        except requests.exceptions.Timeout:
+            return {"reply": "Taking too long - try again!", "error": "timeout"}, 200
+        except Exception as e:
+            print(f"Zuri error: {e}")
+            return {"reply": "Something went wrong. Try again!", "error": str(e)}, 200
+
+
+class ZuriHealthResource(Resource):
+    def get(self):
+        """Check if Zuri is available"""
+        api_key = os.getenv("GROQ_API_KEY")
+        real_paintings = get_real_paintings()
+        
+        return {
+            "status": "online" if api_key else "offline",
+            "assistant": "Zuri",
+            "version": "2.0",
+            "features": ["cart", "certificates", "recommendations"],
+            "paintings_available": len(real_paintings)
+        }, 200
