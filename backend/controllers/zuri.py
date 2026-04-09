@@ -1,28 +1,146 @@
 # controllers/zuri.py
-# Zuri — SANAA's AI Art Assistant (FREE Groq-powered)
+# Zuri — SANAA's AI Art Assistant (Groq-powered with REAL data)
 
 from flask_restful import Resource
-from flask import request, current_app
+from flask import request
 import requests
 import os
-import json
+from models.painting import Painting
+from models.artist import Artist
+from models.category import Category
 
-# System prompt that defines Zuri's personality and knowledge
+
+def get_real_paintings():
+    """Fetch actual AVAILABLE paintings from SANAA database"""
+    try:
+        # Get only available paintings that are not sold and not deleted
+        paintings = Painting.query.filter(
+            Painting.is_available == True,
+            Painting.is_sold == False,
+            Painting.status == "available"
+        ).limit(50).all()
+        
+        paintings_list = []
+        for p in paintings:
+            # Get stock quantity
+            stock_qty = p.stock.quantity if p.stock else 0
+            
+            # Skip if out of stock
+            if stock_qty <= 0:
+                continue
+            
+            # Get artist name
+            artist_name = "Unknown Artist"
+            if p.artist:
+                artist_name = p.artist.name  # Assuming Artist model has 'name' field
+            
+            # Get category name
+            category_name = ""
+            if p.category:
+                category_name = p.category.name
+            
+            paintings_list.append({
+                "id": p.id,
+                "title": p.title,
+                "artist": artist_name,
+                "price": float(p.price),
+                "category": category_name,
+                "description": p.description or "",
+                "materials": p.materials or "",
+                "location": p.location or "",
+                "stock": stock_qty,
+                "has_certificate": bool(p.ipfs_cid),  # Has blockchain cert
+            })
+        
+        return paintings_list
+    except Exception as e:
+        print(f"❌ Error fetching paintings: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+
+def build_paintings_context(paintings, user_budget=None):
+    """Format paintings into text for the AI"""
+    if not paintings:
+        return "\n⚠️ NO PAINTINGS CURRENTLY AVAILABLE - Tell users to check homepage for latest uploads or come back later."
+    
+    # Filter by budget if provided
+    if user_budget:
+        paintings = [p for p in paintings if p['price'] <= user_budget]
+        if not paintings:
+            return f"\n⚠️ No paintings found under KSH {user_budget:,}. Suggest browsing all artworks or increasing budget."
+    
+    lines = [f"\n📊 CURRENT AVAILABLE PAINTINGS ({len(paintings)} in stock):"]
+    lines.append("⚠️ ONLY RECOMMEND THESE REAL PAINTINGS — NEVER INVENT FAKE ONES!\n")
+    
+    # Group by price range for easier recommendations
+    budget_friendly = [p for p in paintings if p['price'] < 10000]
+    mid_range = [p for p in paintings if 10000 <= p['price'] < 30000]
+    premium = [p for p in paintings if 30000 <= p['price'] < 100000]
+    collector = [p for p in paintings if p['price'] >= 100000]
+    
+    if budget_friendly:
+        lines.append("💰 BUDGET-FRIENDLY (Under KSH 10,000):")
+        for p in budget_friendly[:10]:
+            lines.append(format_painting_line(p))
+    
+    if mid_range:
+        lines.append("\n💎 MID-RANGE (KSH 10,000 - 30,000):")
+        for p in mid_range[:10]:
+            lines.append(format_painting_line(p))
+    
+    if premium:
+        lines.append("\n🏆 PREMIUM (KSH 30,000 - 100,000):")
+        for p in premium[:10]:
+            lines.append(format_painting_line(p))
+    
+    if collector:
+        lines.append("\n👑 COLLECTOR PIECES (Above KSH 100,000):")
+        for p in collector[:5]:
+            lines.append(format_painting_line(p))
+    
+    return "\n".join(lines)
+
+
+def format_painting_line(p):
+    """Format a single painting for AI context"""
+    line = f"  • \"{p['title']}\" by {p['artist']} — KSH {p['price']:,.0f}"
+    
+    if p.get('category'):
+        line += f" [{p['category']}]"
+    
+    if p.get('materials'):
+        line += f" ({p['materials']})"
+    
+    if p.get('stock', 0) <= 3:
+        line += f" ⚠️ Only {p['stock']} left!"
+    
+    cert_status = "✅ Certified" if p.get('has_certificate') else "⏳ Pending cert"
+    line += f" {cert_status}"
+    
+    if p.get('description'):
+        desc = p['description'][:80] + "..." if len(p['description']) > 80 else p['description']
+        line += f"\n    → {desc}"
+    
+    return line
+
+
 ZURI_SYSTEM_PROMPT = """You are Zuri, the friendly AI art assistant for SANAA — Kenya's premier online art marketplace.
 
 🎨 ABOUT SANAA:
 - SANAA (sanaa-ke.vercel.app) is a digital marketplace for authentic Kenyan paintings
-- Every artwork comes with a blockchain-verified "Hakika ya Kienyeji" certificate of authenticity
-- Payments via M-Pesa (Lipa na M-Pesa)
+- Every artwork comes with a blockchain-verified "Hakika ya Kienyeji" certificate of authenticity (IPFS)
+- Payments via M-Pesa (Lipa na M-Pesa) or Cash on Delivery
 - Artists upload original works which get IPFS certificates and QR codes
 
 🎯 YOUR ROLE:
-- Help buyers discover and learn about artworks
-- Recommend paintings based on preferences (style, budget, room, mood)
-- Explain the certificate verification process
-- Guide users through buying, cart, and checkout
+- Help buyers discover paintings based on budget, style, room, or mood
+- Recommend ONLY from the available paintings list below
+- Explain the Hakika ya Kienyeji certificate verification process
+- Guide users through cart, checkout, and payment
 - Share knowledge about Kenyan art styles and artists
-- Be warm, helpful, and culturally aware
+- Be warm, helpful, culturally aware, and encouraging
 
 💰 PRICE GUIDANCE:
 - Budget-friendly: Under KSH 10,000
@@ -30,57 +148,50 @@ ZURI_SYSTEM_PROMPT = """You are Zuri, the friendly AI art assistant for SANAA �
 - Premium: KSH 30,000 - 100,000
 - Collector pieces: Above KSH 100,000
 
-🏷️ ART CATEGORIES ON SANAA:
-- Landscape — Kenyan landscapes, mountains, savannahs
-- Wildlife — African animals, safari scenes
-- Portrait — People, cultural figures
-- Abstract — Contemporary, modern expressions
-- Cultural — Traditional ceremonies, heritage
-- Urban — City life, street art
-- Coastal — Beach scenes, ocean views
-- Figurative — Human form, movement
-- Still Life — Objects, fruits, flowers
-- Mixed Media — Combined materials
+🏷️ ART CATEGORIES:
+Landscape, Wildlife, Portrait, Abstract, Cultural, Urban, Coastal, Figurative, Still Life, Mixed Media
 
-📜 CERTIFICATE VERIFICATION:
-- Each painting gets an IPFS certificate (blockchain)
-- Look for the ✅ Hakika ya Kienyeji badge
-- Scan the QR code to verify authenticity
-- Certificate ID (CID) is permanently stored on IPFS
+📜 HAKIKA YA KIENYEJI (Certificate of Authenticity):
+- Each painting gets a unique IPFS blockchain certificate
+- Look for the ✅ badge on certified artworks
+- Scan the QR code to verify authenticity on-chain
+- Certificate includes: artwork details, artist signature, timestamp, provenance
+- Permanent, tamper-proof record
 
 🛒 HOW TO BUY:
-1. Browse paintings on the homepage
-2. Click on a painting to see details
+1. Browse paintings on homepage (sanaa-ke.vercel.app)
+2. Click on a painting to see full details
 3. Add to cart
-4. Go to checkout
-5. Select delivery address
-6. Pay via M-Pesa or Cash on Delivery
-7. Receive your certified artwork!
+4. Proceed to checkout
+5. Enter delivery address
+6. Choose payment: M-Pesa or Cash on Delivery
+7. Receive your certified artwork with QR code!
 
-IMPORTANT RULES:
-- Always be helpful, warm, and encouraging
-- Use Swahili greetings occasionally (Habari! Karibu!)
-- Keep responses concise (under 200 words unless asked for detail)
-- When recommending art, ask about: budget, room/space, preferred colors, mood
-- Always mention the certificate feature — it's our unique selling point
-- If asked about something outside art/SANAA, politely redirect
-- Use emojis sparingly but naturally 🎨
-- Address the user warmly, like a knowledgeable friend at a gallery
+⚠️ CRITICAL RULES:
+1. **ONLY recommend paintings from the list below** — NEVER invent titles, artists, or prices
+2. Use EXACT titles and artist names from the database
+3. If no paintings match user's request, say: "We don't have that right now, but check our homepage for new uploads!" and suggest similar available options
+4. When a painting is low stock (≤3), mention "Only X left in stock!"
+5. Always highlight the Hakika ya Kienyeji certificate feature
+6. Keep responses under 200 words (be concise)
+7. Use Swahili greetings occasionally (Habari! Karibu! Asante!)
+8. Be warm and encouraging, like a knowledgeable friend
+9. Use emojis sparingly 🎨
+10. If asked about non-art topics, politely redirect to art
+
+{paintings_context}
 """
 
 
 class ZuriChatResource(Resource):
     def post(self):
         """
-        Chat with Zuri AI assistant (FREE Groq-powered)
+        Chat with Zuri AI assistant (FREE Groq-powered with real database data)
         
         Body:
         {
-            "message": "I'm looking for a landscape painting",
-            "history": [
-                {"role": "user", "content": "Hi"},
-                {"role": "assistant", "content": "Habari! Welcome to SANAA..."}
-            ]
+            "message": "Recommend something under 20000",
+            "history": [...]
         }
         """
         data = request.get_json()
@@ -91,7 +202,6 @@ class ZuriChatResource(Resource):
         user_message = data["message"].strip()
         history = data.get("history", [])
         
-        # Get API key from environment (Groq is FREE!)
         api_key = os.getenv("GROQ_API_KEY")
         
         if not api_key:
@@ -101,12 +211,30 @@ class ZuriChatResource(Resource):
             }, 200
         
         try:
-            # Build messages array (OpenAI-compatible format)
+            # ✅ Fetch REAL available paintings from database
+            real_paintings = get_real_paintings()
+            
+            # Extract budget from message if mentioned (optional smart filtering)
+            user_budget = None
+            if "under" in user_message.lower() or "below" in user_message.lower():
+                import re
+                budget_match = re.search(r'(\d+(?:,\d+)?)', user_message)
+                if budget_match:
+                    user_budget = int(budget_match.group(1).replace(',', ''))
+            
+            paintings_context = build_paintings_context(real_paintings, user_budget)
+            
+            # Build system prompt with real data
+            system_prompt = ZURI_SYSTEM_PROMPT.format(
+                paintings_context=paintings_context
+            )
+            
+            # Build messages array
             messages = [
-                {"role": "system", "content": ZURI_SYSTEM_PROMPT}
+                {"role": "system", "content": system_prompt}
             ]
             
-            # Add conversation history (last 10 messages max)
+            # Add conversation history (last 10 messages)
             for msg in history[-10:]:
                 if msg.get("role") in ["user", "assistant"] and msg.get("content"):
                     messages.append({
@@ -120,7 +248,7 @@ class ZuriChatResource(Resource):
                 "content": user_message
             })
             
-            # Call Groq API (FREE & FAST!)
+            # Call Groq API (FREE!)
             response = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
                 headers={
@@ -128,12 +256,7 @@ class ZuriChatResource(Resource):
                     "Authorization": f"Bearer {api_key}"
                 },
                 json={
-                    "model": "llama-3.3-70b-versatile",  # ✅ FIXED - Latest model
-                    # Other free alternatives:
-                    # "llama-3.1-8b-instant" - fastest
-                    # "mixtral-8x7b-32768" - great for longer context
-                    # "gemma2-9b-it" - Google's model
-                    
+                    "model": "llama-3.3-70b-versatile",
                     "messages": messages,
                     "max_tokens": 500,
                     "temperature": 0.7,
@@ -145,7 +268,7 @@ class ZuriChatResource(Resource):
             if response.status_code != 200:
                 print(f"Groq API error: {response.status_code} - {response.text}")
                 return {
-                    "reply": "I'm having a moment — please try again! In the meantime, explore our beautiful collection on the homepage. 🎨",
+                    "reply": "I'm having a moment — please try again! 🎨",
                     "error": "API error"
                 }, 200
             
@@ -154,7 +277,8 @@ class ZuriChatResource(Resource):
             
             return {
                 "reply": reply,
-                "model": result.get("model", "llama-3.1-70b"),
+                "model": result.get("model", "llama-3.3-70b"),
+                "paintings_available": len(real_paintings),
                 "usage": result.get("usage", {})
             }, 200
             
@@ -165,29 +289,43 @@ class ZuriChatResource(Resource):
             }, 200
             
         except Exception as e:
-            print(f"Zuri error: {str(e)}")
+            print(f"❌ Zuri error: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {
-                "reply": "Something went wrong on my end. Please try again or browse our collection directly! 🎨",
+                "reply": "Something went wrong on my end. Please try again or browse our collection! 🎨",
                 "error": str(e)
             }, 200
 
 
 class ZuriHealthResource(Resource):
     def get(self):
-        """Check if Zuri is available"""
+        """Check if Zuri is available and database status"""
         api_key = os.getenv("GROQ_API_KEY")
+        real_paintings = get_real_paintings()
         
         return {
             "status": "online" if api_key else "offline",
             "assistant": "Zuri",
             "platform": "SANAA Kenya",
-            "model": "Llama 3.1 70B (Groq)",
-            "cost": "FREE unlimited 🎉",
+            "model": "Llama 3.3 70B (Groq)",
+            "cost": "FREE forever 🎉",
+            "paintings_available": len(real_paintings),
+            "sample_paintings": [
+                {
+                    "title": p['title'],
+                    "artist": p['artist'],
+                    "price": p['price'],
+                    "certified": p['has_certificate']
+                }
+                for p in real_paintings[:5]
+            ],
             "capabilities": [
-                "Art recommendations",
+                "Real-time recommendations from live database",
+                "Budget-based filtering",
+                "Stock availability checking",
                 "Certificate verification help",
                 "Buying guidance",
-                "Artist information",
                 "Kenyan art knowledge"
             ]
         }, 200
