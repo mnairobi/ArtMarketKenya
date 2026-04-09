@@ -32,7 +32,7 @@ def get_real_paintings():
             # Get artist name
             artist_name = "Unknown Artist"
             if p.artist:
-                artist_name = p.artist.name  # Assuming Artist model has 'name' field
+                artist_name = p.artist.user.username if p.artist and p.artist.user else "Unknown Artist"
             
             # Get category name
             category_name = ""
